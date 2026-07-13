@@ -1,6 +1,8 @@
 # Microservices Interview Prep
 
-## What is a Monolithic Application?
+## Fundamentals
+
+### What is a Monolithic Application?
 
 Before understanding microservices, you need to know what a monolith is.
 
@@ -32,7 +34,7 @@ Suppose only the Notification module has a bug — can we deploy just Notificati
 
 Suppose Transactions receives 10,000 requests/sec while Notifications receives 100 requests/sec — can we scale only Transactions? ❌ No, we must scale the entire application, which wastes CPU and memory.
 
-## What are Microservices?
+### What are Microservices?
 
 Microservices is an architectural style where an application is divided into small, independent services. Each service is responsible for one specific business capability and can be developed, deployed, and scaled independently.
 
@@ -71,7 +73,7 @@ Each service:
 - Can have its own database (often)
 - Can scale independently
 
-## Advantages of Microservices
+### Advantages of Microservices
 
 - ✅ Independent deployment
 - ✅ Independent scaling
@@ -80,7 +82,7 @@ Each service:
 - ✅ Easier maintenance
 - ✅ Freedom to use different technologies per service
 
-## Disadvantages of Microservices
+### Disadvantages of Microservices
 
 - ❌ More infrastructure
 - ❌ Network communication overhead
@@ -88,9 +90,11 @@ Each service:
 - ❌ More monitoring
 - ❌ Data consistency challenges
 
-## How should the Transaction Service tell the Notification Service to send a notification? (Service-to-Service Communication)
+## Service-to-Service Communication
 
-### 1. Synchronous Communication (HTTP)
+### How should the Transaction Service tell the Notification Service to send a notification?
+
+#### 1. Synchronous Communication (HTTP)
 
 ```text
 User
@@ -115,7 +119,7 @@ Transaction Service finishes
 
 **Problem:** if the Notification Service is down, the HTTP request fails, and the transaction may fail even though it was created successfully. This is called **tight coupling**.
 
-### 2. Asynchronous Communication (Kafka)
+#### 2. Asynchronous Communication (Kafka)
 
 Instead of calling the Notification Service directly:
 
@@ -145,7 +149,7 @@ Send Email
 
 Notice: the Transaction Service doesn't wait — it finishes immediately.
 
-### Why is Kafka better here?
+#### Why is Kafka better here?
 
 Suppose the Notification Service crashes.
 
@@ -155,7 +159,7 @@ Suppose the Notification Service crashes.
 
 The transaction still succeeds; the notification is simply delayed.
 
-### When should you use HTTP?
+#### When should you use HTTP?
 
 Use HTTP when:
 
@@ -164,7 +168,7 @@ Use HTTP when:
 
 Examples: Authentication Service validating a JWT, Payment Service verifying a coupon, User Service fetching profile information.
 
-### When should you use Kafka/RabbitMQ?
+#### When should you use Kafka/RabbitMQ?
 
 Use a message broker when:
 
@@ -175,18 +179,22 @@ Use a message broker when:
 
 Examples: sending emails, push notifications, SMS, analytics, audit logs, order processing, inventory updates.
 
-### When would you choose HTTP over Kafka? (Interview answer)
+#### When would you choose HTTP over Kafka? (Interview answer)
 
 I use HTTP for synchronous communication when I need an immediate response or the result is required before continuing the request. I use Kafka or RabbitMQ for asynchronous communication when tasks can be processed later, such as sending notifications, updating analytics, or processing background jobs. This improves scalability, fault tolerance, and loose coupling between services.
 
-## What is an Event?
+## Architecture Components
+
+### What is an API Gateway?
+
+An API Gateway is a single entry point for all client requests in a microservices architecture. It receives requests from clients, performs common tasks such as authentication, rate limiting, and routing, and forwards the requests to the appropriate microservice.
+
+## Event-Driven Concepts
+
+### What is an Event?
 
 An event is something that has happened in the system.
 
-## What is Event-Driven Architecture (EDA)?
+### What is Event-Driven Architecture (EDA)?
 
 Event-Driven Architecture is an architectural pattern where services communicate by publishing and consuming events through a message broker like Kafka or RabbitMQ. It enables loose coupling, scalability, and asynchronous processing.
-
-## What is an API Gateway?
-
-An API Gateway is a single entry point for all client requests in a microservices architecture. It receives requests from clients, performs common tasks such as authentication, rate limiting, and routing, and forwards the requests to the appropriate microservice.

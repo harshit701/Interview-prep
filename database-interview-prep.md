@@ -1,14 +1,16 @@
 # Database Interview Prep
 
-## What is Indexing in a database?
+## Indexing & Query Optimization
+
+### What is Indexing in a database?
 
 An index is a database data structure that improves query performance by allowing the database to quickly locate rows without scanning the entire table.
 
-### Should we create indexes on every column?
+#### Should we create indexes on every column?
 
 No. Indexes improve read performance but add overhead to write operations because the index also needs to be updated. We should create indexes on columns frequently used in `WHERE` clauses, `JOIN` conditions, and sorting operations.
 
-### You have a query with multiple WHERE conditions. How will you design an index?
+#### You have a query with multiple WHERE conditions. How will you design an index?
 
 ```sql
 SELECT *
@@ -21,15 +23,15 @@ CREATE INDEX idx_transactions_user_created
 ON transactions(user_id, created_at DESC);
 ```
 
-## What is a composite index?
+### What is a composite index?
 
 A composite index is a single index that stores multiple columns together instead of indexing only one column.
 
-## What is Query Optimization?
+### What is Query Optimization?
 
 Query optimization is the process of improving database queries so they execute faster while consuming fewer database resources.
 
-### Why do we need Query Optimization?
+#### Why do we need Query Optimization?
 
 Imagine your API endpoint is:
 
@@ -52,9 +54,9 @@ Your `transactions` table has 10 million rows. The database returns all 10 milli
 - Slower response
 - Higher database load
 
-### Common Query Optimization Techniques
+#### Common Query Optimization Techniques
 
-#### 1. Avoid `SELECT *`
+**1. Avoid `SELECT *`**
 
 Bad — loads every column, even ones you don't need:
 
@@ -72,7 +74,7 @@ SELECT id, name, email FROM users;
 
 **Benefits:** less data transferred, less memory usage, faster response.
 
-#### 2. Use Proper Indexes
+**2. Use Proper Indexes**
 
 Slow, with no index (full table scan):
 
@@ -87,13 +89,13 @@ CREATE INDEX idx_users_email ON users(email);
 -- Now this becomes an index lookup instead of a full scan
 ```
 
-#### 3. Avoid the N+1 Query Problem ⭐⭐⭐⭐⭐
+**3. Avoid the N+1 Query Problem ⭐⭐⭐⭐⭐**
 
 This is a very common backend interview question.
 
 Imagine you need a list of users along with their orders.
 
-**Bad approach:**
+Bad approach:
 
 ```js
 // 1 query for all users
@@ -107,7 +109,7 @@ for (const user of users) {
 
 If there are 100 users, that's 1 query for users + 100 queries for orders = **101 queries**. This is the N+1 problem.
 
-**Better approach — use a JOIN:**
+Better approach — use a JOIN:
 
 ```sql
 SELECT
@@ -120,7 +122,7 @@ JOIN orders ON users.id = orders.user_id;
 
 Now it's a single query. ✅
 
-#### 4. Pagination
+**4. Pagination**
 
 Never do this for large tables:
 
@@ -138,7 +140,7 @@ SELECT * FROM transactions LIMIT 20 OFFSET 0;
 SELECT * FROM transactions LIMIT 20 OFFSET 20;
 ```
 
-#### 5. Use `EXPLAIN ANALYZE` ⭐⭐⭐⭐⭐
+**5. Use `EXPLAIN ANALYZE` ⭐⭐⭐⭐⭐**
 
 Before optimizing a query, inspect its execution plan:
 
@@ -154,7 +156,7 @@ This tells you:
 - Execution time
 - The full query plan
 
-#### 6. Avoid Unnecessary Joins
+**6. Avoid Unnecessary Joins**
 
 ```sql
 -- ❌ Bad — joins everything even if you only need the user's name
@@ -168,27 +170,31 @@ JOIN logs ON ...;
 
 If you only need the user name, don't join every related table.
 
-## What is Connection Pooling?
+## Connection Management
+
+### What is Connection Pooling?
 
 Connection pooling is a technique where a set of reusable database connections are created and maintained so that applications can reuse existing connections instead of creating a new connection for every request.
 
-### Why not create a new DB connection for every request?
+#### Why not create a new DB connection for every request?
 
 Creating a database connection is expensive. Connection pooling allows reuse of existing connections, reducing latency and controlling the number of active connections.
 
-### What happens if all connections in the pool are busy?
+#### What happens if all connections in the pool are busy?
 
 New requests wait until a connection becomes available, or a timeout occurs based on pool configuration.
 
-### How do you handle database connections in a high-traffic Node.js application?
+#### How do you handle database connections in a high-traffic Node.js application?
 
 I use connection pooling to maintain a controlled number of reusable database connections. Each request borrows a connection from the pool, executes the query, and returns it. This avoids the overhead of creating connections repeatedly and prevents exhausting the database's connection limits.
 
-## What is Redis?
+## Caching with Redis
+
+### What is Redis?
 
 Redis is an in-memory key-value data store used for caching, session management, real-time data processing, and reducing database load.
 
-### Cache-Aside Pattern (Most Common) ⭐⭐⭐⭐⭐
+#### Cache-Aside Pattern (Most Common) ⭐⭐⭐⭐⭐
 
 This is the pattern interviewers expect.
 
@@ -210,35 +216,43 @@ Store result in Redis
 Return response
 ```
 
-### What is Cache Invalidation?
+In the Cache-Aside pattern, the application first checks the cache. If the data is not found, it fetches it from the database, stores it in the cache, and then returns it to the client.
+
+> This same pattern is also referenced from a system-design angle (load balancers, CDNs, etc.) in the **System Design Interview Prep** file, but the mechanics are identical.
+
+#### What is Cache Invalidation?
 
 Cache invalidation is the process of removing or updating cached data whenever the original data changes, so users always receive the latest information instead of stale data.
 
-## What is Database Replication?
+## Data Architecture & Reliability
+
+### What is Database Replication?
 
 Database replication is the process of copying data from one database server to one or more database servers to improve scalability, availability, and reliability.
 
-## What is a Transaction?
+### What is a Transaction?
 
 A database transaction is a group of one or more database operations that are treated as a single unit of work. Either all operations succeed, or all operations fail.
 
-## What is Sharding?
+### What is Sharding?
 
 Sharding is the process of splitting a large database into smaller, independent databases called shards, where each shard stores a subset of the data.
 
-## What is SQL?
+## SQL vs NoSQL
+
+### What is SQL?
 
 SQL databases store data in tables with rows and columns and follow a fixed schema.
 
 **Examples:** PostgreSQL, MySQL, SQL Server, Oracle
 
-## What is NoSQL?
+### What is NoSQL?
 
 NoSQL databases store data in flexible formats such as documents, key-value pairs, graphs, or columns and do not require a fixed schema.
 
 **Examples:** MongoDB, Cassandra, DynamoDB, CouchDB
 
-## When should you use SQL?
+### When should you use SQL?
 
 Choose SQL when:
 
@@ -250,7 +264,7 @@ Choose SQL when:
 - Data has strong relationships
 - ACID transactions are required
 
-## When should you use NoSQL?
+### When should you use NoSQL?
 
 Choose NoSQL when:
 
@@ -299,6 +313,7 @@ Examples: monthly reports, financial reports, analytics dashboards.
 If losing or corrupting data is unacceptable.
 
 **Examples — choose PostgreSQL for:**
+
 - FinPilot
 - Banking system
 - Payroll system
@@ -356,6 +371,7 @@ Applications with millions of users or billions of documents.
 Requirements change frequently — MongoDB is very flexible.
 
 **Examples — choose MongoDB for:**
+
 - Instagram posts
 - Facebook posts
 - Product catalogs

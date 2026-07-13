@@ -1,22 +1,38 @@
 # Node.js Interview Prep
 
-## What is the V8 Engine?
+## Node.js Runtime & Architecture
+
+### What is the V8 Engine?
 
 V8 is Google's open-source JavaScript engine written in C++. It executes JavaScript code by compiling it into machine code, allowing it to run efficiently on the CPU.
 
-## Why is Node.js fast?
+### Why is Node.js fast?
 
 Because it uses the V8 engine, which uses Just-In-Time (JIT) compilation to convert JavaScript into optimized machine code.
 
-## If V8 can execute JavaScript, then why do we need Node.js?
+### If V8 can execute JavaScript, then why do we need Node.js?
 
 Node.js is an open-source JavaScript runtime built on Google's V8 engine. V8 executes JavaScript code, while Node.js provides additional features like the file system, HTTP server, timers, streams, and other APIs that allow JavaScript to build backend applications and run outside the browser.
 
-## What is a Runtime Environment?
+### What is a Runtime Environment?
 
 A runtime environment is the software that allows a programming language to run. It provides the execution engine along with APIs and services such as file system access, networking, timers, memory management, and interaction with the operating system.
 
-## What happens internally when we execute `node app.js`?
+When JavaScript runs in Node.js, it gets capabilities like the File System, an HTTP Server, TCP Connections, Streams, libuv, and the Event Loop:
+
+```text
+Node.js Runtime
+├── V8 Engine
+├── libuv
+├── File System APIs
+├── HTTP Module
+├── Event Loop
+└── Process APIs
+```
+
+> This is different from a browser runtime, which instead provides Web APIs and the DOM — see the **JavaScript Interview Prep** file.
+
+### What happens internally when we execute `node app.js`?
 
 ```js
 // app.js
@@ -33,27 +49,29 @@ console.log("End");
 
 When a Node.js application starts, the operating system creates a Node.js process. Node initializes the V8 engine, libuv, the Event Loop, the Thread Pool, and the Node APIs. V8 executes the JavaScript code. When asynchronous operations such as file system access or networking are encountered, they are delegated to libuv. Once the operation completes, libuv places the callback into the appropriate queue, and the Event Loop moves it to the Call Stack when it becomes empty.
 
-### Does V8 execute asynchronous operations?
-
+**Does V8 execute asynchronous operations?**
 No. V8 only executes JavaScript. Asynchronous operations are managed by the Node.js runtime, primarily through libuv.
 
-### Who creates the Event Loop?
-
+**Who creates the Event Loop?**
 The Event Loop is part of libuv, not the V8 engine.
 
-### Who manages the Thread Pool?
-
+**Who manages the Thread Pool?**
 The Thread Pool is managed by libuv.
 
-### Does V8 know about `fs.readFile()`?
-
+**Does V8 know about `fs.readFile()`?**
 No. `fs.readFile()` is provided by the Node.js runtime. V8 executes the JavaScript that calls it, but the actual file I/O is handled by libuv and the operating system.
 
-## What is libuv?
+### What is libuv?
 
 libuv is a C library used by Node.js to handle asynchronous operations. It provides the Event Loop, Thread Pool, and non-blocking I/O, allowing Node.js to perform tasks like file system operations, networking, DNS lookups, and timers without blocking the main JavaScript thread.
 
-### Think of libuv as a manager
+**Why does Node.js need libuv?**
+JavaScript is single-threaded. If JavaScript itself tried to read a huge file with `fs.readFile(...)`, it would freeze the application until the file finished reading — that's bad. Instead, Node.js asks libuv to do the work. libuv provides asynchronous, non-blocking I/O — it manages the Event Loop, Thread Pool, timers, networking, and communication with the operating system, allowing JavaScript to remain single-threaded while background operations execute efficiently.
+
+**Is libuv only for asynchronous operations?**
+Mostly yes — it provides asynchronous capabilities for Node.js. Without libuv, Node.js would behave much more like a synchronous program.
+
+**Think of libuv as a manager 📋**
 
 ```text
 JavaScript Developer
@@ -65,11 +83,11 @@ JavaScript Developer
  Operating System
 ```
 
-JavaScript says "read this file." libuv (the manager) says "I'll take care of it," the operating system reads the file, and libuv comes back with "It's done — here's the callback." That's exactly what libuv does.
+JavaScript says "read this file." libuv (the manager) says "I'll take care of it," the operating system reads the file, and libuv comes back with "It's done — here's the callback." That's exactly what libuv does. JavaScript never reads the file itself — libuv does.
 
-### Responsibilities of libuv
+Another example — who waits for the 2 seconds in `setTimeout(() => {...}, 2000)`? Not JavaScript — libuv manages the timer, and signals the Event Loop once it's finished.
 
-libuv is responsible for:
+**Responsibilities of libuv:**
 
 - Event Loop ✅
 - Thread Pool ✅
@@ -82,7 +100,7 @@ libuv is responsible for:
 
 Without libuv, Node.js would not be asynchronous.
 
-### Internal Architecture
+**Internal architecture:**
 
 ```text
 JavaScript Code
@@ -104,15 +122,41 @@ JavaScript Code
 Operating System
 ```
 
-### Why does Node.js need libuv?
+**Is libuv the Event Loop?** This is a common interview question. The answer is **no** — libuv *implements* the Event Loop for Node.js:
 
-Node.js uses libuv to provide asynchronous, non-blocking I/O. It manages the Event Loop, Thread Pool, timers, networking, and communication with the operating system, allowing JavaScript to remain single-threaded while background operations execute efficiently.
+```text
+Node.js
+│
+├── V8 Engine
+└── libuv
+      │
+      ├── Event Loop
+      ├── Thread Pool
+      ├── Timers
+      └── Async I/O
+```
 
-## Why is Node.js called single-threaded if it has a Thread Pool?
+The Event Loop is one part of libuv.
+
+**Interview answer — "What is libuv?"**
+
+> libuv is a C library used by Node.js to provide asynchronous I/O operations. It is responsible for implementing the Event Loop and managing features like timers, file system operations, networking, and a thread pool for tasks that cannot be handled asynchronously by the operating system. It allows Node.js to perform non-blocking operations while JavaScript continues executing other code.
+
+### What is a Thread Pool?
+
+A Thread Pool is a group of worker threads managed by libuv that perform certain time-consuming operations in the background, allowing the JavaScript thread to continue executing other code.
+
+### Why is Node.js called single-threaded if it has a Thread Pool?
 
 JavaScript execution happens on a single main thread using the V8 engine. However, Node.js uses libuv's Thread Pool to perform certain asynchronous operations in the background. These worker threads do not execute JavaScript — they only perform background tasks and notify the Event Loop when they're finished.
 
-## What is the Event Loop in Node.js?
+### Blocking vs. Non-Blocking I/O
+
+Blocking I/O stops the execution of the program until the current operation completes, whereas non-blocking I/O starts the operation and immediately allows the application to continue executing other tasks. Node.js achieves non-blocking I/O using libuv, the operating system, and the Event Loop, enabling it to handle many concurrent requests efficiently.
+
+## The Node.js Event Loop
+
+### What is the Event Loop in Node.js?
 
 The Node.js Event Loop is a mechanism provided by libuv that continuously goes through different phases to process asynchronous operations. It checks for completed tasks such as timers, file system operations, network requests, and other callbacks. When JavaScript finishes executing the current code and the Call Stack is free, the Event Loop moves the appropriate callback to the Call Stack for execution. This allows Node.js to perform non-blocking operations while executing JavaScript on a single main thread.
 
@@ -120,22 +164,18 @@ The Node.js Event Loop is a mechanism provided by libuv that continuously goes t
 
 **1. Timers Phase**
 Executes callbacks whose timer has expired. Handles `setTimeout()` and `setInterval()`.
-
 > A timer becomes eligible to run after its delay has expired — it does not guarantee execution at the exact specified time.
 
 **2. Pending Callbacks Phase**
 Executes certain system-level callbacks deferred from the previous Event Loop iteration. Handles some TCP connection errors and certain deferred I/O system callbacks.
-
 > Application developers rarely interact with this phase directly.
 
 **3. Idle / Prepare Phase**
 An internal phase used by libuv to prepare for the Poll phase. Handles internal libuv operations only.
-
 > No user code runs here.
 
 **4. Poll Phase** ⭐ (Most Important)
 Processes completed I/O operations and waits for new I/O events. Handles `fs.readFile()`, `fs.writeFile()`, database query callbacks, HTTP server request callbacks, network socket events, stream callbacks, and most completed asynchronous I/O.
-
 > This is the busiest and most important phase of the Event Loop.
 
 **5. Check Phase**
@@ -245,11 +285,13 @@ These aren't phases, but Node.js processes them before moving to the next Event 
         Back to Timers Phase
 ```
 
-## What is a Stream?
+## Streams & Buffers
+
+### What is a Stream?
 
 A Stream is an object in Node.js that reads or writes data in small chunks instead of loading the entire data into memory. This makes data processing more memory-efficient and is especially useful for large files and real-time data.
 
-### How do we send these chunks to the write stream?
+**How do we send these chunks to the write stream?**
 
 Say you have:
 
@@ -261,23 +303,6 @@ const writeStream = fs.createWriteStream("copy.mp4");
 The read stream reads data as a sequence of chunks. You listen for each chunk and write it manually:
 
 ```js
-readStream.on("data", (chunk) => {
-  writeStream.write(chunk);
-});
-
-readStream.on("end", () => {
-  writeStream.end();
-});
-```
-
-Full example:
-
-```js
-const fs = require("fs");
-
-const readStream = fs.createReadStream("movie.mp4");
-const writeStream = fs.createWriteStream("copy.mp4");
-
 readStream.on("data", (chunk) => {
   writeStream.write(chunk);
 });
@@ -300,8 +325,7 @@ That one line automatically:
 - Ends the write stream when reading is complete
 - Handles the flow efficiently
 
-### What is `pipe()`?
-
+**What is `pipe()`?**
 `pipe()` is a method used to connect a readable stream to a writable stream. It automatically transfers data from the source to the destination in chunks without loading the entire data into memory.
 
 ### What is Backpressure?
@@ -309,40 +333,95 @@ That one line automatically:
 Imagine a readable stream producing data at 100 MB/sec while the writable stream can only consume 20 MB/sec:
 
 | Time | Produced | Written | Remaining in memory |
-| ---- | -------- | ------- | ------------------- |
-| 1s   | 100 MB   | 20 MB   | 80 MB               |
-| 2s   | 200 MB   | 40 MB   | 160 MB              |
-| 10s  | 1000 MB  | 200 MB  | 800 MB              |
+|------|----------|---------|----------------------|
+| 1s   | 100 MB   | 20 MB   | 80 MB                |
+| 2s   | 200 MB   | 40 MB   | 160 MB               |
+| 10s  | 1000 MB  | 200 MB  | 800 MB               |
 
 Memory keeps growing because the writer can't consume data as fast as the reader produces it — this is called **backpressure**.
 
 Backpressure is a situation where a readable stream produces data faster than a writable stream can consume it, which can cause data to accumulate in memory. Node.js handles backpressure automatically when using `pipe()` by pausing the readable stream until the writable stream is ready to receive more data.
 
-### Where is each chunk stored before Node.js processes or sends it?
+### What is a Buffer?
+
+Whenever Node.js reads data from a file, a socket, an HTTP request, or a TCP connection, it receives raw bytes — and those bytes are stored in a Buffer. A Buffer is an object in Node.js that temporarily stores binary data in memory before it is processed or transferred.
 
 ```js
 const readStream = fs.createReadStream("movie.mp4");
 
 readStream.on("data", (chunk) => {
-  console.log(chunk);
+  console.log(chunk); // each chunk is stored in a Buffer
 });
 ```
 
-Whenever Node.js reads data from a file, a socket, an HTTP request, or a TCP connection, it receives raw bytes — and those bytes are stored in a **Buffer**.
+**What is the difference between a Buffer and a Stream?**
+A Stream is an object in Node.js that reads, writes, or transforms data in small chunks instead of loading the entire data into memory. A Buffer is an object that temporarily stores raw binary data in memory before it is processed or transferred. In simple terms, a stream *moves* the data, while a buffer temporarily *holds* the data.
 
-### What is a Buffer?
-
-A Buffer is an object in Node.js that temporarily stores binary data in memory before it is processed or transferred.
-
-### What is the difference between a Buffer and a Stream?
-
-A Stream is an object in Node.js that reads, writes, or transforms data in small chunks instead of loading the entire data into memory. A Buffer is an object that temporarily stores raw binary data in memory before it is processed or transferred. In simple terms, a stream _moves_ the data, while a buffer temporarily _holds_ the data.
-
-### Can a Stream work without a Buffer?
-
+**Can a Stream work without a Buffer?**
 No. Streams transfer data, but the actual data is temporarily stored in Buffers. When a readable stream reads a chunk from a file or network, that chunk is stored in a Buffer before being processed or written to the destination.
 
-## What is a Callback?
+## Events & EventEmitter
+
+### What is EventEmitter?
+
+EventEmitter is a built-in Node.js class that implements the publish-subscribe pattern. It allows objects to emit events and other parts of the application to listen for those events. This helps decouple components and enables event-driven programming.
+
+**Basic example:**
+
+```js
+const EventEmitter = require("events");
+
+const emitter = new EventEmitter();
+
+emitter.on("greet", () => {
+  console.log("Hello Harshit");
+});
+
+emitter.emit("greet");
+// Output: Hello Harshit
+```
+
+**How it works:**
+- `emitter.on(...)` registers a listener — think **subscribe**.
+- `emitter.emit(...)` triggers the event — think **publish**.
+
+**Multiple listeners:**
+
+```js
+const emitter = new EventEmitter();
+
+emitter.on("orderPlaced", () => console.log("Send Email"));
+emitter.on("orderPlaced", () => console.log("Update Inventory"));
+emitter.on("orderPlaced", () => console.log("Generate Invoice"));
+
+emitter.emit("orderPlaced");
+// One event, three listeners:
+// Send Email
+// Update Inventory
+// Generate Invoice
+```
+
+**Passing data:**
+
+```js
+emitter.on("userCreated", (user) => {
+  console.log(user.name);
+});
+
+emitter.emit("userCreated", { name: "Harshit" });
+// Output: Harshit
+```
+
+**Removing listeners:**
+
+```js
+emitter.off("login", listener); // removes one listener
+emitter.removeAllListeners();   // removes every listener
+```
+
+## Callbacks & Error Handling
+
+### What is a Callback?
 
 A callback is a function that is passed as an argument to another function so that it can be executed later, usually after a specific task is completed.
 
@@ -357,25 +436,24 @@ function sayBye() {
 }
 
 greet("test", sayBye);
-
 // Output:
 // Hello test
 // Bye
 ```
 
-## What is Callback Hell?
+### What is Callback Hell?
 
 Callback Hell is a situation where multiple asynchronous operations depend on each other, causing callbacks to be nested inside other callbacks. This results in deeply indented code that is difficult to read, maintain, and debug.
 
-## What is the Error-First Callback pattern?
+### What is the Error-First Callback pattern?
 
 An Error-First Callback is a Node.js convention where the first argument of a callback is reserved for an error. If the operation succeeds, the error argument is `null`; if it fails, it contains an `Error` object. This allows developers to handle errors before processing the result.
 
-## What is `uncaughtException`?
+### What is `uncaughtException`?
 
 `uncaughtException` is a Node.js process event that is emitted when a synchronous exception is not caught anywhere in the application.
 
-## What is `unhandledRejection`?
+### What is `unhandledRejection`?
 
 `unhandledRejection` is a Node.js process event that is emitted when a Promise is rejected but no `.catch()` handler is attached to it.
 
@@ -387,37 +465,39 @@ First, I log the error using a logging framework or monitoring service. Then I g
 Log → Clean up → Exit → Restart
 ```
 
-## What is JWT (JSON Web Token)?
+## Express & Middleware
+
+### What is Middleware?
+
+Middleware is a function that executes during the request-response lifecycle. It sits between the incoming request and the route handler. Middleware can execute code, modify the request or response, terminate the request, or pass control to the next middleware using `next()`. It is commonly used for authentication, logging, validation, CORS, and error handling.
+
+## Authentication & Security
+
+### What is JWT (JSON Web Token)?
 
 JWT (JSON Web Token) is a token generated by the server after a user successfully logs in. The client sends this token with every request so the server can identify and verify the user without storing session information.
 
-## What does Stateless mean?
+### What does Stateless mean?
 
 Stateless means the server does not remember the user. Instead, the client sends the JWT with every request, and the server verifies the token to identify the user.
 
-## What is the difference between an Access Token and a Refresh Token?
+### What is the difference between an Access Token and a Refresh Token?
 
-### Access Token
+**Access Token** — a short-lived JWT used to authenticate and authorize a user for accessing protected APIs. It is sent with every request and expires quickly to reduce security risks.
 
-An Access Token is a short-lived JWT used to authenticate and authorize a user for accessing protected APIs. It is sent with every request and expires quickly to reduce security risks.
+**Refresh Token** — a long-lived token used to obtain a new Access Token after it expires, allowing the user to stay logged in without entering credentials again.
 
-### Refresh Token
+### Authentication vs. Authorization
 
-A Refresh Token is a long-lived token used to obtain a new Access Token after it expires, allowing the user to stay logged in without entering credentials again.
+**Authentication** (who are you?) is the process of verifying a user's identity, usually by checking credentials such as an email and password or validating a JWT.
 
-## Authentication (Who are you?)
+**Authorization** (what can you do?) is the process of determining what an authenticated user is allowed to access or perform, based on roles or permissions.
 
-Authentication is the process of verifying a user's identity, usually by checking credentials such as an email and password or validating a JWT.
-
-## Authorization (What can you do?)
-
-Authorization is the process of determining what an authenticated user is allowed to access or perform, based on roles or permissions.
-
-## What is CORS (Cross-Origin Resource Sharing)?
+### What is CORS (Cross-Origin Resource Sharing)?
 
 CORS allows or blocks requests from different domains to protect users from unauthorized access.
 
-## What is Rate Limiting?
+### What is Rate Limiting?
 
 Rate Limiting restricts the number of requests a client can make within a specific time period to prevent abuse and protect the server.
 
@@ -465,113 +545,8 @@ console.log(rateLimiterFn("127.0.0.1", testOptions)); // { allowed: true }  (Hit
 console.log(rateLimiterFn("127.0.0.1", testOptions)); // { allowed: false, statusCode: 429, ... } (Hit 3 - Blocked!)
 ```
 
-## What is Clustering in Node.js?
+## Scaling
+
+### What is Clustering in Node.js?
 
 Clustering creates multiple Node.js processes so the application can use all CPU cores, improving performance and scalability.
-
-## What is Middleware?
-
-Middleware is a function that executes during the request-response lifecycle. It sits between the incoming request and the route handler. Middleware can execute code, modify the request or response, terminate the request, or pass control to the next middleware using next(). It is commonly used for authentication, logging, validation, CORS, and error handling.
-
-## Blocking vs Non-Blocking I/O
-
-Blocking I/O stops the execution of the program until the current operation completes, whereas non-blocking I/O starts the operation and immediately allows the application to continue executing other tasks. Node.js achieves non-blocking I/O using libuv, the operating system, and the event loop, enabling it to handle many concurrent requests efficiently.
-
-## what is EventEmitter?
-
-EventEmitter is a built-in Node.js class that implements the publish-subscribe pattern. It allows objects to emit events and other parts of the application to listen for those events. This helps decouple components and enables event-driven programming.
-
-```text
-Basic Example
-const EventEmitter = require("events");
-
-const emitter = new EventEmitter();
-
-emitter.on("greet", () => {
-    console.log("Hello Harshit");
-});
-
-emitter.emit("greet");
-
-Output
-
-Hello Harshit
-```
-
-```text
-How it works
-emitter.on(...)
-
-Registers a listener.
-
-Think:
-
-Subscribe
-emitter.emit(...)
-
-Triggers the event.
-
-Think:
-
-Publish
-```
-
-```text
-Multiple Listeners
-const EventEmitter = require("events");
-
-const emitter = new EventEmitter();
-
-emitter.on("orderPlaced", () => {
-    console.log("Send Email");
-});
-
-emitter.on("orderPlaced", () => {
-    console.log("Update Inventory");
-});
-
-emitter.on("orderPlaced", () => {
-    console.log("Generate Invoice");
-});
-
-emitter.emit("orderPlaced");
-
-Output
-
-Send Email
-
-Update Inventory
-
-Generate Invoice
-
-One event.
-
-Three listeners.
-```
-
-```text
-Passing Data
-emitter.on("userCreated", (user) => {
-    console.log(user.name);
-});
-
-emitter.emit("userCreated", {
-    name: "Harshit",
-});
-
-Output
-
-Harshit
-```
-
-```text
-removeListener()
-emitter.off("login", listener);
-
-Removes the listener.
-
-removeAllListeners()
-emitter.removeAllListeners();
-
-Removes every listener.
-```
