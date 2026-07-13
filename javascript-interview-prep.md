@@ -42,6 +42,97 @@ Browser Runtime
 
 > Node.js provides its own runtime with different capabilities (libuv, the file system, HTTP, streams). That's covered in detail in the **Node.js Interview Prep** file.
 
+## Scope & Closures
+
+### What is a Lexical Environment in JavaScript?
+
+A Lexical Environment is the internal structure that JavaScript creates for every Execution Context. It stores the variables and functions of the current scope, along with a reference to its outer (parent) environment.
+
+**Think of it like a folder 📁** — imagine every function gets its own folder:
+
+```text
+outer() Folder
+├── b = 20
+├── function inner()
+└── Link to Global Folder
+```
+
+Now `inner()` gets another folder:
+
+```text
+inner() Folder
+├── c = 30
+└── Link to outer() Folder
+```
+
+Every folder has its own variables and a link to the parent folder. That folder is the Lexical Environment.
+
+### What is Lexical Scope?
+
+A function can access variables from its own scope and from the outer scopes where it was defined.
+
+**How does `inner()` find the variable `a`?**
+
+```js
+let a = 10;
+
+function outer() {
+  let b = 20;
+
+  function inner() {
+    console.log(a);
+    console.log(b);
+  }
+
+  inner();
+}
+
+outer();
+```
+
+When JavaScript creates the `inner()` function, it also creates its Lexical Environment, which contains a reference to its outer environment. If JavaScript cannot find `a` inside `inner()`, it follows that reference to the outer environment. If it still doesn't find it there, it continues following the outer references until it reaches the global scope, where it finds `a`.
+
+### What is the Scope Chain?
+
+The Scope Chain is the process JavaScript uses to find a variable. It first looks in the current scope. If the variable is not found, it follows the reference to the outer scope, continuing through each parent scope until the variable is found or it reaches the global scope.
+
+### What is a Closure in JavaScript?
+
+A Closure is a function bundled together with its Lexical Environment. It allows an inner function to access the variables of its outer function even after the outer function has finished executing. This happens because the inner function keeps a reference to the outer function's Lexical Environment.
+
+```js
+function outer() {
+  let count = 0;
+
+  function inner() {
+    count++;
+    console.log(count);
+  }
+
+  return inner;
+}
+
+const counter = outer();
+
+counter();
+counter();
+counter();
+```
+
+**Why isn't `count` removed from memory?**
+
+The variable is not removed from memory because the inner function still has a reference to the outer function's Lexical Environment. Since the variable is still being referenced, JavaScript's Garbage Collector cannot remove it. It stays in memory until there are no more references to it.
+
+**Real-world use cases of Closures:**
+
+- Data encapsulation (private variables)
+- Function factories
+- Event handlers
+- `setTimeout`
+- Callbacks
+- React Hooks
+- Middleware in Node.js
+
 ## Hoisting & Temporal Dead Zone
 
 ### What is Hoisting?
@@ -64,7 +155,7 @@ That's why we can call a function before its declaration, but a `var` variable o
 
 ### What is the state of `let` and `const` during the Creation Phase?
 
-`let` and `const` are not assigned any JavaScript value during the Creation Phase. They are allocated memory, but they remain _uninitialized_ until execution reaches their declaration. This is why the Temporal Dead Zone (TDZ) exists.
+`let` and `const` are not assigned any JavaScript value during the Creation Phase. They are allocated memory, but they remain *uninitialized* until execution reaches their declaration. This is why the Temporal Dead Zone (TDZ) exists.
 
 ### What does "uninitialized" mean?
 
@@ -218,97 +309,6 @@ console.log(result);
 ```text
 10 → double() → 20 → addFive() → 25 → toString() → "25"
 ```
-
-## Scope & Closures
-
-### What is a Lexical Environment in JavaScript?
-
-A Lexical Environment is the internal structure that JavaScript creates for every Execution Context. It stores the variables and functions of the current scope, along with a reference to its outer (parent) environment.
-
-**Think of it like a folder 📁** — imagine every function gets its own folder:
-
-```text
-outer() Folder
-├── b = 20
-├── function inner()
-└── Link to Global Folder
-```
-
-Now `inner()` gets another folder:
-
-```text
-inner() Folder
-├── c = 30
-└── Link to outer() Folder
-```
-
-Every folder has its own variables and a link to the parent folder. That folder is the Lexical Environment.
-
-### What is Lexical Scope?
-
-A function can access variables from its own scope and from the outer scopes where it was defined.
-
-**How does `inner()` find the variable `a`?**
-
-```js
-let a = 10;
-
-function outer() {
-  let b = 20;
-
-  function inner() {
-    console.log(a);
-    console.log(b);
-  }
-
-  inner();
-}
-
-outer();
-```
-
-When JavaScript creates the `inner()` function, it also creates its Lexical Environment, which contains a reference to its outer environment. If JavaScript cannot find `a` inside `inner()`, it follows that reference to the outer environment. If it still doesn't find it there, it continues following the outer references until it reaches the global scope, where it finds `a`.
-
-### What is the Scope Chain?
-
-The Scope Chain is the process JavaScript uses to find a variable. It first looks in the current scope. If the variable is not found, it follows the reference to the outer scope, continuing through each parent scope until the variable is found or it reaches the global scope.
-
-### What is a Closure in JavaScript?
-
-A Closure is a function bundled together with its Lexical Environment. It allows an inner function to access the variables of its outer function even after the outer function has finished executing. This happens because the inner function keeps a reference to the outer function's Lexical Environment.
-
-```js
-function outer() {
-  let count = 0;
-
-  function inner() {
-    count++;
-    console.log(count);
-  }
-
-  return inner;
-}
-
-const counter = outer();
-
-counter();
-counter();
-counter();
-```
-
-**Why isn't `count` removed from memory?**
-
-The variable is not removed from memory because the inner function still has a reference to the outer function's Lexical Environment. Since the variable is still being referenced, JavaScript's Garbage Collector cannot remove it. It stays in memory until there are no more references to it.
-
-**Real-world use cases of Closures:**
-
-- Data encapsulation (private variables)
-- Function factories
-- Event handlers
-- `setTimeout`
-- Callbacks
-- React Hooks
-- Middleware in Node.js
 
 ## `this`, call, apply, and bind
 
