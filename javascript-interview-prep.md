@@ -155,7 +155,7 @@ That's why we can call a function before its declaration, but a `var` variable o
 
 ### What is the state of `let` and `const` during the Creation Phase?
 
-`let` and `const` are not assigned any JavaScript value during the Creation Phase. They are allocated memory, but they remain *uninitialized* until execution reaches their declaration. This is why the Temporal Dead Zone (TDZ) exists.
+`let` and `const` are not assigned any JavaScript value during the Creation Phase. They are allocated memory, but they remain _uninitialized_ until execution reaches their declaration. This is why the Temporal Dead Zone (TDZ) exists.
 
 ### What does "uninitialized" mean?
 
@@ -549,3 +549,168 @@ window.addEventListener("scroll", throttledScroll);
 ### What is Event Bubbling?
 
 Event Bubbling is the default event propagation mechanism in JavaScript. When an event occurs on a child element, it first executes on the target element and then propagates upward through its parent elements until it reaches the document.
+
+## Inheritance
+
+### Prototypal Inheritance
+
+Prototypal Inheritance is a JavaScript mechanism where one object can inherit properties and methods from another object through the prototype chain.
+
+# Why do we need Prototypal Inheritance?
+
+Instead of copying the same methods into every object, JavaScript allows objects to **share** methods.
+
+This saves memory and avoids duplicate code.
+
+---
+
+# Example
+
+```javascript
+const person = {
+  greet() {
+    console.log("Hello");
+  },
+};
+
+const user = {
+  name: "Harshit",
+};
+
+Object.setPrototypeOf(user, person);
+
+user.greet();
+```
+
+Output
+
+```text
+Hello
+```
+
+Although `greet()` is not inside `user`, JavaScript finds it in `person`.
+
+---
+
+# How JavaScript Searches
+
+```text
+user
+
+↓
+
+Does user have greet()?
+
+↓
+
+No
+
+↓
+
+Look inside user's prototype (person)
+
+↓
+
+Found
+
+↓
+
+Execute greet()
+```
+
+This searching process is called the **Prototype Chain**.
+
+---
+
+# Prototype Chain
+
+Every JavaScript object has an internal reference to another object called its **prototype**.
+
+When JavaScript cannot find a property in the current object, it searches the prototype.
+
+If it still cannot find it, it continues searching up the chain until it reaches `null`.
+
+```text
+user
+
+↓
+
+person
+
+↓
+
+Object.prototype
+
+↓
+
+null
+```
+
+---
+
+# Example
+
+```javascript
+const person = {
+  country: "India",
+};
+
+const user = {
+  name: "Harshit",
+};
+
+Object.setPrototypeOf(user, person);
+
+console.log(user.country);
+```
+
+Output
+
+```text
+India
+```
+
+JavaScript looks for `country`:
+
+1. Inside `user` ❌
+2. Inside `person` ✅
+3. Returns `"India"`
+
+---
+
+# Class Example
+
+```javascript
+class Animal {
+  speak() {
+    console.log("Animal Sound");
+  }
+}
+
+class Dog extends Animal {}
+
+const dog = new Dog();
+
+dog.speak();
+```
+
+Output
+
+```text
+Animal Sound
+```
+
+Although we use `class` and `extends`, JavaScript still uses **prototypal inheritance** behind the scenes.
+
+Classes are just a cleaner syntax over prototypes.
+
+---
+
+# Benefits
+
+- Code reuse
+- Saves memory
+- Avoids duplicate methods
+- Allows inheritance between objects
+
+---
