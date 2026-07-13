@@ -20,17 +20,19 @@ Every Execution Context (Global or Function) goes through 2 phases:
 ### Why are functions hoisted completely while `var` variables are initialized with `undefined`?
 
 During the Creation Phase:
+
 - Function declarations are stored with their complete function object so they can be invoked before their declaration in the source code.
 - `var` declarations are allocated memory and initialized to `undefined`, but their assignments happen later during the Execution Phase.
 - `let` and `const` are also allocated memory during the Creation Phase but remain uninitialized until execution reaches their declarations, creating the Temporal Dead Zone (TDZ).
 
 ### What is the state of `let` and `const` during the Creation Phase?
 
-`let` and `const` are not assigned any JavaScript value during the Creation Phase. They are allocated memory, but they remain *uninitialized* until execution reaches their declaration. This is why the Temporal Dead Zone (TDZ) exists.
+`let` and `const` are not assigned any JavaScript value during the Creation Phase. They are allocated memory, but they remain _uninitialized_ until execution reaches their declaration. This is why the Temporal Dead Zone (TDZ) exists.
 
 ### What does "uninitialized" mean?
 
 It means:
+
 - The variable exists
 - Memory has been allocated
 - But JavaScript has not assigned any value yet
@@ -92,6 +94,7 @@ JavaScript is single-threaded. If JavaScript itself tried to read a huge file wi
 #### What does libuv do?
 
 It handles:
+
 - File System Operations
 - DNS
 - Timers
@@ -151,7 +154,7 @@ Who waits for 2 seconds? Not JavaScript — libuv manages the timer. After 2 sec
 Mostly yes — it provides asynchronous capabilities for Node.js. Without libuv, Node.js would behave much more like a synchronous program.
 
 **Is libuv the Event Loop?**
-This is a common interview question. The answer is **no** — libuv *implements* the Event Loop for Node.js. Think of it this way:
+This is a common interview question. The answer is **no** — libuv _implements_ the Event Loop for Node.js. Think of it this way:
 
 ```text
 Node.js
@@ -181,14 +184,14 @@ JavaScript executes only synchronous code on its main thread. Whenever it encoun
 
 **Mental map, for review:**
 
-| Concept | Question it answers |
-|---|---|
-| Execution Context | Where does code execute? |
-| Call Stack | How does JavaScript keep track of execution? |
-| Runtime Environment | Who provides APIs like timers and file system? |
-| libuv | Who manages asynchronous operations in Node.js? |
-| Thread Pool | Who performs certain background tasks? |
-| Event Loop | How are completed asynchronous callbacks scheduled back onto the Call Stack? |
+| Concept             | Question it answers                                                          |
+| ------------------- | ---------------------------------------------------------------------------- |
+| Execution Context   | Where does code execute?                                                     |
+| Call Stack          | How does JavaScript keep track of execution?                                 |
+| Runtime Environment | Who provides APIs like timers and file system?                               |
+| libuv               | Who manages asynchronous operations in Node.js?                              |
+| Thread Pool         | Who performs certain background tasks?                                       |
+| Event Loop          | How are completed asynchronous callbacks scheduled back onto the Call Stack? |
 
 ## What is Hoisting?
 
@@ -484,3 +487,285 @@ E
 ### What is `Promise.any()`?
 
 `Promise.any()` accepts multiple Promises and returns the first fulfilled Promise. It ignores rejected Promises unless all Promises reject. If every Promise rejects, it rejects with an `AggregateError`.
+
+## What is `First Class Functions`?
+
+A First Class Function is a function that is treated like any other value in JavaScript.
+
+This means a function can be:
+
+Assigned to a variable
+Passed as an argument
+Returned from another function
+Stored in objects or arrays
+
+Because JavaScript treats functions as first-class citizens, they have the same capabilities as other data types like strings, numbers, and objects.
+
+```text
+Real-world Example
+
+In Express:
+
+app.get("/users", getUsers);
+
+Here, getUsers is passed as a value to app.get(). This is possible because functions are first-class citizens.
+
+Another example:
+
+setTimeout(sendEmail, 5000);
+
+sendEmail is passed as a value.
+
+```
+
+```text
+Example
+function greet(name) {
+  return `Hello ${name}`;
+}
+
+const sayHello = greet;
+
+console.log(sayHello("Harshit"));
+
+Output:
+
+Hello Harshit
+
+The function is assigned to another variable.
+```
+
+```text
+Functions can also be returned:
+
+function multiply(multiplier) {
+  return function (num) {
+    return num * multiplier;
+  };
+}
+
+const double = multiply(2);
+
+console.log(double(5));
+
+Output:
+
+10
+
+Functions can also be stored inside objects:
+
+const calculator = {
+  add(a, b) {
+    return a + b;
+  },
+};
+
+console.log(calculator.add(5, 6));
+```
+
+## What is `Higher Order Function`?
+
+A Higher Order Function (HOF) is a function that either:
+
+Accepts one or more functions as arguments, or
+Returns another function.
+
+If either of these conditions is true, it is called a Higher Order Function.
+
+```text
+Real-world Examples
+map()
+const numbers = [1, 2, 3];
+
+const doubled = numbers.map(num => num * 2);
+
+Here:
+
+map() → Higher Order Function
+(num => num * 2) → Callback Function
+filter()
+const even = numbers.filter(num => num % 2 === 0);
+
+filter() is a Higher Order Function.
+
+setTimeout()
+setTimeout(() => {
+  console.log("Hello");
+}, 1000);
+
+setTimeout() accepts a function as an argument.
+
+Express Middleware
+app.get("/users", authMiddleware, getUsers);
+
+app.get() accepts functions.
+
+Therefore it is also a Higher Order Function.
+```
+
+```text
+Higher Order Function
+
+map()
+filter()
+reduce()
+setTimeout()
+forEach()
+sort()
+
+These accept functions.
+```
+
+## What is Currying?
+
+Currying is a technique where a function that takes multiple arguments is transformed into a sequence of functions, each taking one argument at a time.
+
+```js
+function multiply(a) {
+  return function (b) {
+    return a * b;
+  };
+}
+
+console.log(multiply(2)(5));
+```
+
+**Output**
+10
+
+## What is Function Composition?
+
+Function composition is a technique where the output of one function becomes the input of the next function. Multiple small functions are chained together to produce a final result.
+
+```text
+With Composition
+
+Create small functions.
+
+function double(num) {
+  return num * 2;
+}
+
+function addFive(num) {
+  return num + 5;
+}
+
+function toString(num) {
+  return String(num);
+}
+
+Now combine them.
+
+const result = toString(addFive(double(10)));
+
+console.log(result);
+
+Output
+
+"25"
+```
+
+### Visual
+
+```text
+10
+
+↓
+
+double()
+
+↓
+
+20
+
+↓
+
+addFive()
+
+↓
+
+25
+
+↓
+
+toString()
+
+↓
+
+"25"
+```
+
+## What is Debouncing?
+
+Debouncing is a technique that delays the execution of a function until a specified amount of time has passed since the last event occurred.
+
+```js
+function debounce(fn, delay) {
+  let timer;
+
+  return function (...args) {
+    clearTimeout(timer);
+
+    timer = setTimeout(() => {
+      fn(...args);
+    }, delay);
+  };
+}
+
+function search(query) {
+  console.log("Searching:", query);
+}
+
+const debouncedSearch = debounce(search, 500);
+
+debouncedSearch("t");
+debouncedSearch("te");
+debouncedSearch("tes");
+debouncedSearch("test");
+```
+
+```text
+Output after 500 ms:
+
+Searching: test
+
+Only once.
+```
+
+## What is Throttling?
+
+Throttling is a technique that limits how often a function can execute within a specified time interval.
+
+```js
+function throttle(fn, delay) {
+  let shouldWait = false;
+
+  return function (...args) {
+    if (shouldWait) {
+      return;
+    }
+
+    fn(...args);
+
+    shouldWait = true;
+
+    setTimeout(() => {
+      shouldWait = false;
+    }, delay);
+  };
+}
+
+function log() {
+  console.log("Scrolling...");
+}
+
+const throttledScroll = throttle(log, 1000);
+
+window.addEventListener("scroll", throttledScroll);
+```
+
+## What is Event Bubbling?
+
+Event Bubbling is the default event propagation mechanism in JavaScript.
+
+When an event occurs on a child element, it first executes on the target element and then propagates upward through its parent elements until it reaches the document.

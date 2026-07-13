@@ -70,6 +70,7 @@ JavaScript says "read this file." libuv (the manager) says "I'll take care of it
 ### Responsibilities of libuv
 
 libuv is responsible for:
+
 - Event Loop ✅
 - Thread Pool ✅
 - File System Operations ✅
@@ -119,18 +120,22 @@ The Node.js Event Loop is a mechanism provided by libuv that continuously goes t
 
 **1. Timers Phase**
 Executes callbacks whose timer has expired. Handles `setTimeout()` and `setInterval()`.
+
 > A timer becomes eligible to run after its delay has expired — it does not guarantee execution at the exact specified time.
 
 **2. Pending Callbacks Phase**
 Executes certain system-level callbacks deferred from the previous Event Loop iteration. Handles some TCP connection errors and certain deferred I/O system callbacks.
+
 > Application developers rarely interact with this phase directly.
 
 **3. Idle / Prepare Phase**
 An internal phase used by libuv to prepare for the Poll phase. Handles internal libuv operations only.
+
 > No user code runs here.
 
 **4. Poll Phase** ⭐ (Most Important)
 Processes completed I/O operations and waits for new I/O events. Handles `fs.readFile()`, `fs.writeFile()`, database query callbacks, HTTP server request callbacks, network socket events, stream callbacks, and most completed asynchronous I/O.
+
 > This is the busiest and most important phase of the Event Loop.
 
 **5. Check Phase**
@@ -289,6 +294,7 @@ readStream.pipe(writeStream);
 ```
 
 That one line automatically:
+
 - Reads each chunk
 - Writes it to the destination
 - Ends the write stream when reading is complete
@@ -303,10 +309,10 @@ That one line automatically:
 Imagine a readable stream producing data at 100 MB/sec while the writable stream can only consume 20 MB/sec:
 
 | Time | Produced | Written | Remaining in memory |
-|------|----------|---------|----------------------|
-| 1s   | 100 MB   | 20 MB   | 80 MB                |
-| 2s   | 200 MB   | 40 MB   | 160 MB               |
-| 10s  | 1000 MB  | 200 MB  | 800 MB               |
+| ---- | -------- | ------- | ------------------- |
+| 1s   | 100 MB   | 20 MB   | 80 MB               |
+| 2s   | 200 MB   | 40 MB   | 160 MB              |
+| 10s  | 1000 MB  | 200 MB  | 800 MB              |
 
 Memory keeps growing because the writer can't consume data as fast as the reader produces it — this is called **backpressure**.
 
@@ -330,7 +336,7 @@ A Buffer is an object in Node.js that temporarily stores binary data in memory b
 
 ### What is the difference between a Buffer and a Stream?
 
-A Stream is an object in Node.js that reads, writes, or transforms data in small chunks instead of loading the entire data into memory. A Buffer is an object that temporarily stores raw binary data in memory before it is processed or transferred. In simple terms, a stream *moves* the data, while a buffer temporarily *holds* the data.
+A Stream is an object in Node.js that reads, writes, or transforms data in small chunks instead of loading the entire data into memory. A Buffer is an object that temporarily stores raw binary data in memory before it is processed or transferred. In simple terms, a stream _moves_ the data, while a buffer temporarily _holds_ the data.
 
 ### Can a Stream work without a Buffer?
 
@@ -462,3 +468,110 @@ console.log(rateLimiterFn("127.0.0.1", testOptions)); // { allowed: false, statu
 ## What is Clustering in Node.js?
 
 Clustering creates multiple Node.js processes so the application can use all CPU cores, improving performance and scalability.
+
+## What is Middleware?
+
+Middleware is a function that executes during the request-response lifecycle. It sits between the incoming request and the route handler. Middleware can execute code, modify the request or response, terminate the request, or pass control to the next middleware using next(). It is commonly used for authentication, logging, validation, CORS, and error handling.
+
+## Blocking vs Non-Blocking I/O
+
+Blocking I/O stops the execution of the program until the current operation completes, whereas non-blocking I/O starts the operation and immediately allows the application to continue executing other tasks. Node.js achieves non-blocking I/O using libuv, the operating system, and the event loop, enabling it to handle many concurrent requests efficiently.
+
+## what is EventEmitter?
+
+EventEmitter is a built-in Node.js class that implements the publish-subscribe pattern. It allows objects to emit events and other parts of the application to listen for those events. This helps decouple components and enables event-driven programming.
+
+```text
+Basic Example
+const EventEmitter = require("events");
+
+const emitter = new EventEmitter();
+
+emitter.on("greet", () => {
+    console.log("Hello Harshit");
+});
+
+emitter.emit("greet");
+
+Output
+
+Hello Harshit
+```
+
+```text
+How it works
+emitter.on(...)
+
+Registers a listener.
+
+Think:
+
+Subscribe
+emitter.emit(...)
+
+Triggers the event.
+
+Think:
+
+Publish
+```
+
+```text
+Multiple Listeners
+const EventEmitter = require("events");
+
+const emitter = new EventEmitter();
+
+emitter.on("orderPlaced", () => {
+    console.log("Send Email");
+});
+
+emitter.on("orderPlaced", () => {
+    console.log("Update Inventory");
+});
+
+emitter.on("orderPlaced", () => {
+    console.log("Generate Invoice");
+});
+
+emitter.emit("orderPlaced");
+
+Output
+
+Send Email
+
+Update Inventory
+
+Generate Invoice
+
+One event.
+
+Three listeners.
+```
+
+```text
+Passing Data
+emitter.on("userCreated", (user) => {
+    console.log(user.name);
+});
+
+emitter.emit("userCreated", {
+    name: "Harshit",
+});
+
+Output
+
+Harshit
+```
+
+```text
+removeListener()
+emitter.off("login", listener);
+
+Removes the listener.
+
+removeAllListeners()
+emitter.removeAllListeners();
+
+Removes every listener.
+```
