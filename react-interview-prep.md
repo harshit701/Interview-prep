@@ -848,3 +848,250 @@ A key is a unique identifier used by React to identify elements in a list so it 
 ```js
 products.map((product) => <ProductCard key={product.id} name={product.name} />);
 ```
+
+## What is Controlled Components?
+
+A controlled component is a form element whose value is controlled by React state.
+
+```js
+import { useState } from "react";
+
+function Login() {
+  const [username, setUsername] = useState("");
+
+  return (
+    <input
+      type="text"
+      value={username}
+      onChange={(event) => setUsername(event.target.value)}
+    />
+  );
+}
+```
+
+## What is Uncontrolled Components?
+
+An uncontrolled component stores its own state in the DOM instead of React state.
+
+```js
+import { useRef } from "react";
+
+function Login() {
+  const inputRef = useRef();
+
+  function handleClick() {
+    console.log(inputRef.current.value);
+  }
+
+  return (
+    <>
+      <input ref={inputRef} />
+
+      <button onClick={handleClick}>Submit</button>
+    </>
+  );
+}
+```
+
+### What is useRef used for?
+
+useRef is used to access DOM elements directly or store mutable values that persist across renders without causing re-renders.
+
+### Why do we use event.preventDefault()?
+
+It prevents the browser's default form submission behavior, allowing React to handle the submission without reloading the page.
+
+# React Hooks
+
+## What is useState?
+
+useState is a React Hook that allows functional components to store and update state. When the state changes, React schedules a re-render of the component.
+
+## What does useState return?
+
+useState returns an array containing the current state value and a state update function.
+
+```js
+const [count, setCount];
+```
+
+## Why does changing state re-render a component?
+
+Calling the setter function tells React that the state has changed. React schedules a new render, executes the component again, and updates the UI if needed.
+
+## Why must Hooks always be called in the same order?
+
+React associates Hook state with the order in which Hooks are called. Changing the order would cause React to associate the wrong state with the wrong Hook.
+
+## Why Do We Need useEffect?
+
+Let's start with a simple question.
+
+Suppose we want to fetch users from an API.
+
+```js
+function Users() {
+  fetch("/api/users");
+
+  return <h1>Users</h1>;
+}
+```
+
+Looks fine?
+
+No.
+
+Why?
+
+Remember what happens when state changes.
+
+```text
+State Changes
+
+↓
+
+Component Re-renders
+
+↓
+
+Component Function Runs Again
+```
+
+That means:
+
+```text
+Users()
+
+↓
+
+fetch()
+
+↓
+
+Users()
+
+↓
+
+fetch()
+
+↓
+
+Users()
+
+↓
+
+fetch()
+```
+
+Every render makes another API request.
+
+Not good.
+
+## What is Side Effects?
+
+A side effect is any operation that interacts with something outside the component's rendering process.
+
+Examples:
+
+API requests
+Timers (setTimeout, setInterval)
+Event listeners
+Updating the document title
+Accessing Local Storage
+Direct DOM manipulation
+
+Returning JSX is not a side effect.
+
+Fetching data is.
+
+## What is useEffect?
+
+useEffect is a React Hook used to perform side effects after a component has rendered.
+
+```text
+Remember this:
+
+Render UI First
+
+↓
+
+Run useEffect Later
+```
+
+## Dependency Array
+
+The dependency array controls when the effect runs.
+
+There are three common patterns.
+
+### 1. No Dependency Array
+
+```js
+useEffect(() => {
+  console.log("Runs");
+});
+```
+
+Runs:
+
+```text
+Initial Render
+
+↓
+
+Every Re-render
+```
+
+### 2. Empty Dependency Array
+
+```js
+useEffect(() => {
+  console.log("Runs Once");
+}, []);
+```
+
+Runs:
+
+```text
+Component Mounts
+
+↓
+
+Effect Runs
+
+↓
+
+Never Again
+```
+
+### 3. Dependencies
+
+```js
+useEffect(() => {
+  console.log("User Changed");
+}, [userId]);
+```
+
+Runs:
+
+```text
+Mount
+
+↓
+
+userId Changes
+
+↓
+
+Runs Again
+
+↓
+
+userId Changes Again
+
+↓
+
+Runs Again
+```
+
+If userId doesn't change, the effect doesn't run again.
