@@ -1095,3 +1095,568 @@ Runs Again
 ```
 
 If userId doesn't change, the effect doesn't run again.
+
+## What is useRef?
+
+useRef is a React Hook that returns a mutable object whose .current property persists across renders without causing re-renders when it changes.
+
+### Why doesn't useRef trigger a re-render?
+
+Because updating ref.current changes a property on an existing object. React isn't notified that the UI needs to update, unlike when state is updated with a setter function.
+
+### When should you use useRef?
+
+Accessing DOM elements
+Focusing inputs
+Storing timer IDs
+Keeping previous values
+Storing mutable values that shouldn't trigger re-renders
+
+### What's the difference between useState and useRef?
+
+| `useState`                     | `useRef`                                |
+| ------------------------------ | --------------------------------------- |
+| Stores UI state                | Stores mutable values                   |
+| Triggers re-render             | Does **not** trigger re-render          |
+| Returns `[value, setter]`      | Returns `{ current }`                   |
+| Used when the UI should update | Used when the UI doesn't need to update |
+
+### Why Do We Need useMemo?
+
+Imagine you have a page with two buttons.
+
+Count: 0
+
+[Increment]
+
+[Change Theme]
+
+Clicking Increment should increase the count.
+
+Clicking Change Theme should only change the background color.
+
+Now imagine your component contains an expensive calculation.
+
+const total = expensiveCalculation(count);
+
+Question:
+
+When you click Change Theme, should React execute expensiveCalculation() again?
+
+The answer is No, because count hasn't changed.
+
+Unfortunately, by default, React executes the entire component again on every render.
+
+## What is Memoization?
+
+Memoization is the process of storing the result of an expensive computation and reusing the cached result when the inputs have not changed.
+
+**useMemo**
+
+```text
+
+React provides this optimization through:
+
+const value = useMemo(callback, dependencies);
+```
+
+Example:
+
+```js
+const total = useMemo(() => {
+  return expensiveCalculation(count);
+}, [count]);
+```
+
+```text
+Now React says:
+
+"Only execute this calculation if count changes."
+
+```
+
+## useMemo
+
+useMemo is a React Hook that memoizes the result of an expensive calculation and recomputes it only when its dependencies change.
+
+```js
+const memoizedValue = useMemo(() => {
+  return expensiveCalculation();
+}, [dependencies]);
+```
+
+### Does useMemo prevent re-renders?
+
+No.
+
+It only avoids recalculating a value.
+
+The component still re-renders whenever its state or props change.
+
+### When should you avoid useMemo?
+
+Avoid it for cheap calculations because memoization itself has a cost. Use it only when the computation is expensive or when it helps prevent unnecessary work.
+
+## What is useCallback?
+
+useCallback memoizes a function so React returns the same function reference until its dependencies change.
+
+```js
+const memoizedFunction = useCallback(() => {}, [dependencies]);
+```
+
+### Why do we use useCallback?
+
+To avoid creating a new function on every render when a stable function reference is important, especially for memoized child components.
+
+### Difference between useMemo and useCallback?
+
+useMemo
+
+Memoizes a **value**
+
+useCallback
+
+Memoizes a **function**
+
+### Does useCallback stop re-renders?
+
+No.
+
+It only returns the same function reference.
+
+A component still re-renders when its state or props change.
+
+## Before Learning useContext
+
+Let's understand the problem.
+
+Suppose we have this component tree:
+
+```text
+App
+│
+├── Navbar
+│
+├── Dashboard
+│    │
+│    ├── Sidebar
+│    │
+│    └── Profile
+│          │
+│          └── UserCard
+```
+
+The logged-in user's name is stored in App.
+
+```js
+function App() {
+  const [user] = useState({
+    name: "HD",
+  });
+}
+```
+
+Now imagine UserCard needs the user's name.
+
+_Without Context_
+
+```text
+How do we get it there?
+
+App
+ │
+ │ user
+ ▼
+Dashboard
+ │
+ │ user
+ ▼
+Profile
+ │
+ │ user
+ ▼
+UserCard
+```
+
+Every intermediate component has to receive the user prop and pass it down.
+
+Example:
+
+```js
+<App user={user} />
+
+↓
+
+<Dashboard user={user} />
+
+↓
+
+<Profile user={user} />
+
+↓
+
+<UserCard user={user} />
+```
+
+Even though:
+
+Dashboard doesn't need it.
+Profile doesn't need it.
+
+They only pass it down.
+
+### This is called Prop Drilling
+
+Prop drilling is the process of passing props through multiple intermediate components that don't actually use them, just so deeper components can access the data.
+
+```text
+Example:
+
+App
+
+↓
+
+Dashboard
+
+↓
+
+Profile
+
+↓
+
+UserCard
+
+Only:
+
+UserCard
+
+needs the data.
+
+The other components are just "middlemen."
+```
+
+### React's Solution: Context
+
+React says:
+
+"Instead of passing data through every component, let's make the data available directly to any component that needs it."
+
+### How Context Works
+
+Three steps:
+
+```text
+Create Context
+
+↓
+
+Provide Data
+
+↓
+
+Consume Data
+```
+
+#### Step 1: Create Context
+
+```js
+import { createContext } from "react";
+
+export const UserContext = createContext(null);
+```
+
+This creates a Context object.
+
+Think of it as an empty container.
+
+#### Step 2: Provide Data
+
+```js
+<UserContext.Provider value={user}>
+  <Dashboard />
+</UserContext.Provider>
+```
+
+Now every component inside Dashboard can access user.
+
+#### Step 3: Consume Data
+
+```js
+import { useContext } from "react";
+
+const user = useContext(UserContext);
+```
+
+Now you have direct access to the value.
+
+No prop drilling.
+
+### When Should You Use Context?
+
+Good for:
+
+Logged-in user
+Theme (Light/Dark)
+Language
+Authentication state
+Shopping cart
+Application settings
+
+### When Should You NOT Use Context?
+
+Don't use Context for every piece of state.
+
+Local component state should usually stay in:
+
+useState()
+
+Context is for data that many components need.
+
+## What is useContext?
+
+_useContext_ is a React Hook that allows a component to read the current value of a Context without passing props through intermediate components.
+
+## What problem does it solve?
+
+It solves prop drilling.
+
+## What is Prop Drilling?
+
+Passing props through components that don't use them, just so deeper components can receive the data.
+
+## Can Context replace Redux?
+
+Not completely.
+
+Context is great for sharing data.
+
+Redux (or Zustand, etc.) also provides advanced state management features like middleware, devtools, predictable updates, and more.
+
+## Does Context cause re-renders?
+
+Yes.
+
+If a Provider's value changes, every consuming component that reads that Context is re-rendered.
+
+## What is a Reducer?
+
+A reducer is a pure function that takes the current state and an action, then returns a new state without mutating the existing one.
+
+```js
+function reducer(state, action) {
+  if (action.type === "increment") {
+    return state + 1;
+  }
+
+  return state;
+}
+```
+
+Notice something.
+
+The reducer doesn't know who clicked the button.
+
+It only knows:
+
+I received an "increment" action.
+
+## What is an Action?
+
+An action is just a plain JavaScript object describing what happened.
+
+Example:
+
+```js
+{
+  type: "increment";
+}
+
+or;
+
+{
+  type: "decrement";
+}
+
+or;
+
+{
+  type: "reset";
+}
+```
+
+The key idea:
+
+Actions describe what should happen.
+
+The reducer decides how the state changes.
+
+## What is dispatch?
+
+Instead of calling:
+
+```js
+setCount(...)
+```
+
+you call:
+
+```js
+dispatch({
+  type: "increment",
+});
+```
+
+Think of dispatch as:
+
+"Send this action to the reducer."
+
+### The Complete Flow
+
+This is one of the most important diagrams in React.
+
+```text
+Button Click
+│
+▼
+dispatch({
+type: "increment"
+})
+│
+▼
+Reducer
+(state, action)
+│
+▼
+Returns New State
+│
+▼
+React Updates UI
+```
+
+Notice:
+
+The button never changes the state directly.
+
+### useState vs useReducer
+
+| `useState`                     | `useReducer`                 |
+| ------------------------------ | ---------------------------- |
+| Simple state                   | Complex state                |
+| Few updates                    | Many update types            |
+| Direct setter (`setState`)     | `dispatch(action)`           |
+| Logic spread across components | Logic centralized in reducer |
+| Easier to start                | Better as complexity grows   |
+
+## Custom Hooks
+
+### Suppose you're building two pages.
+
+Page A
+
+```js
+function Users() {
+  const [users, setUsers] = useState([]);
+
+  useEffect(() => {
+    fetch("/users")
+      .then((res) => res.json())
+      .then((data) => setUsers(data));
+  }, []);
+}
+```
+
+Page B
+
+```js
+function Products() {
+  const [products, setProducts] = useState([]);
+
+  useEffect(() => {
+    fetch("/products")
+      .then((res) => res.json())
+      .then((data) => setProducts(data));
+  }, []);
+}
+```
+
+Notice something?
+
+The API URL changes, but the logic is almost identical.
+
+We're repeating:
+
+useState
+useEffect
+Loading state
+Error state
+Fetch logic
+
+This is called duplicate logic.
+
+### What is a Custom Hook?
+
+A custom hook is a JavaScript (or TypeScript) function that starts with use and allows you to reuse stateful logic between multiple components.
+
+### It starts with use
+
+```js
+useFetch();
+
+useDebounce();
+
+useAuth();
+
+useTheme();
+```
+
+### It can use other hooks
+
+Inside a custom hook:
+
+```js
+function useFetch() {
+  useState();
+
+  useEffect();
+
+  useRef();
+
+  useMemo();
+}
+```
+
+A custom hook is simply a function that calls other hooks.
+
+### Does a custom hook share state between components?
+
+No. A custom hook does not share state. Each component that calls a custom hook gets its own independent instance of the hook's state. Custom hooks are used to reuse stateful logic, not to create shared state. If shared state is required, I would use Context, Redux, Zustand, or another state management solution.
+
+### What is Abort Controller?
+
+AbortController is a browser API that allows you to cancel one or more asynchronous operations, such as a fetch() request.
+
+### Why use AbortController in React?
+
+When a component unmounts, a pending request may no longer be needed. Using AbortController in the useEffect cleanup function cancels the request, avoiding unnecessary work and ensuring only active requests continue.
+
+### Can It Cancel Other Things?
+
+Yes.
+
+It's not limited to fetch.
+
+Many modern browser APIs support AbortSignal.
+
+For example:
+
+fetch()
+Streams
+Some file operations
+Some third-party libraries
+
+It's becoming a standard way to support cancellation in JavaScript.
+
+### Why use generics in a custom hook?
+
+Generics make the hook reusable for different data types while preserving type safety. Instead of creating separate hooks for users, products, or orders, a single generic hook can work with all of them.
