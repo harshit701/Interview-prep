@@ -373,4 +373,207 @@ tests and build. It then builds a Docker image, pushes it to AWS ECR,
 connects to EC2, pulls the latest image, stops the old container and
 starts a new one.
 
----
+### What are the different types of deployments in CI/CD?
+
+1. Recreate Deployment (Big Bang Deployment)
+
+The old version is completely stopped before the new version is deployed.
+
+```text
+Old Version
+    ↓ Stop
+No Application Running
+    ↓
+New Version Starts
+```
+
+**Pros**
+Very simple to implement.
+No need to maintain multiple versions.
+
+**Cons**
+Causes downtime.
+If deployment fails, users cannot access the application until rollback.
+
+**Example**: Deploying a small internal HR application during off-hours.
+
+2. Rolling Deployment
+
+Instances are updated one at a time (or in small batches) while the rest continue serving traffic.
+
+```text
+Before:
+V1 V1 V1 V1
+
+Step 1:
+V2 V1 V1 V1
+
+Step 2:
+V2 V2 V1 V1
+
+Step 3:
+V2 V2 V2 V1
+
+Final:
+V2 V2 V2 V2
+```
+
+**Pros**
+No downtime.
+Lower infrastructure cost.
+Easy to automate in Kubernetes.
+
+**Cons**
+Both versions run simultaneously.
+Database changes must be backward compatible.
+Rollback takes time.
+
+**Example**: Updating a Node.js API running on four EC2 instances.
+
+3. Blue-Green Deployment
+
+Maintain two identical environments:
+
+Blue = Current Production
+Green = New Version
+
+```text
+Users
+|
+Load Balancer
+|
+Blue (Live)
+
+Deploy to Green
+Test Green
+
+Switch Traffic
+
+Users
+|
+Load Balancer
+|
+Green (Live)
+```
+
+**Pros**
+Near-zero downtime.
+Very fast rollback by switching traffic back.
+Safer deployments.
+**Cons**
+Requires double infrastructure.
+Higher cost.
+
+**Example**: Banking or e-commerce applications where downtime is unacceptable.
+
+4. Canary Deployment
+
+Release the new version to a small percentage of users first.
+
+```text
+100% Users
+
+90% → V1
+10% → V2
+
+↓
+
+50% → V1
+50% → V2
+
+↓
+
+100% → V2
+```
+
+**Pros**
+Detect bugs early.
+Limits impact if something goes wrong.
+Great for gradual releases.
+**Cons**
+More complex routing.
+Requires monitoring.
+
+**Example**: Releasing a new checkout flow to only 5% of customers.
+
+5. A/B Testing
+
+Different users receive different versions to compare behaviour.
+
+```text
+Users
+
+50% → Version A
+50% → Version B
+
+Compare:
+
+- Click rate
+- Sales
+- Time spent
+```
+
+**Pros**
+Helps optimise user experience.
+Data-driven decisions.
+**Cons**
+More application logic.
+Mainly used for product experiments rather than infrastructure deployment.
+
+**Example**: Testing two different homepage designs.
+
+6. Shadow Deployment (Mirrored Deployment)
+
+Production traffic is copied to the new version, but responses are ignored.
+
+```text
+Users
+|
+Production V1
+|
++-------> V2 (Shadow)
+Users only receive V1 responses.
+```
+
+The new version processes real traffic without affecting users.
+
+**Pros**
+Tests the new version under real production load.
+No customer impact.
+**Cons**
+Requires additional infrastructure.
+Doesn't test actual user-visible behaviour.
+
+**Example**: Validating that a rewritten recommendation engine performs correctly before making it live.
+
+7. Feature Flag (Feature Toggle)
+
+Deploy the code but keep new features disabled until they're ready.
+
+```text
+Deploy Version 2
+
+Feature X = OFF
+
+↓
+
+Enable for Internal Team
+
+↓
+
+Enable for 5%
+
+↓
+
+Enable for Everyone
+```
+
+**Pros**
+Decouples deployment from release.
+Instant rollback by disabling the feature.
+Great for continuous delivery.
+**Cons**
+Adds code complexity.
+Flags need to be managed and cleaned up.
+
+**Example**: Shipping a payment feature that's hidden until business approval.

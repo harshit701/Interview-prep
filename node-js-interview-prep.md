@@ -20,7 +20,7 @@ A runtime environment is the software that allows a programming language to run.
 
 When JavaScript runs in Node.js, it gets capabilities like the File System, an HTTP Server, TCP Connections, Streams, libuv, and the Event Loop:
 
-```text
+```
 Node.js Runtime
 ├── V8 Engine
 ├── libuv
@@ -34,7 +34,7 @@ Node.js Runtime
 
 ### What happens internally when we execute `node app.js`?
 
-```js
+```
 // app.js
 const fs = require("fs");
 
@@ -49,31 +49,25 @@ console.log("End");
 
 When a Node.js application starts, the operating system creates a Node.js process. Node initializes the V8 engine, libuv, the Event Loop, the Thread Pool, and the Node APIs. V8 executes the JavaScript code. When asynchronous operations such as file system access or networking are encountered, they are delegated to libuv. Once the operation completes, libuv places the callback into the appropriate queue, and the Event Loop moves it to the Call Stack when it becomes empty.
 
-**Does V8 execute asynchronous operations?**
-No. V8 only executes JavaScript. Asynchronous operations are managed by the Node.js runtime, primarily through libuv.
+**Does V8 execute asynchronous operations?** No. V8 only executes JavaScript. Asynchronous operations are managed by the Node.js runtime, primarily through libuv.
 
-**Who creates the Event Loop?**
-The Event Loop is part of libuv, not the V8 engine.
+**Who creates the Event Loop?** The Event Loop is part of libuv, not the V8 engine.
 
-**Who manages the Thread Pool?**
-The Thread Pool is managed by libuv.
+**Who manages the Thread Pool?** The Thread Pool is managed by libuv.
 
-**Does V8 know about `fs.readFile()`?**
-No. `fs.readFile()` is provided by the Node.js runtime. V8 executes the JavaScript that calls it, but the actual file I/O is handled by libuv and the operating system.
+**Does V8 know about `fs.readFile()`?** No. `fs.readFile()` is provided by the Node.js runtime. V8 executes the JavaScript that calls it, but the actual file I/O is handled by libuv and the operating system.
 
 ### What is libuv?
 
 libuv is a C library used by Node.js to handle asynchronous operations. It provides the Event Loop, Thread Pool, and non-blocking I/O, allowing Node.js to perform tasks like file system operations, networking, DNS lookups, and timers without blocking the main JavaScript thread.
 
-**Why does Node.js need libuv?**
-JavaScript is single-threaded. If JavaScript itself tried to read a huge file with `fs.readFile(...)`, it would freeze the application until the file finished reading — that's bad. Instead, Node.js asks libuv to do the work. libuv provides asynchronous, non-blocking I/O — it manages the Event Loop, Thread Pool, timers, networking, and communication with the operating system, allowing JavaScript to remain single-threaded while background operations execute efficiently.
+**Why does Node.js need libuv?** JavaScript is single-threaded. If JavaScript itself tried to read a huge file with `fs.readFile(...)`, it would freeze the application until the file finished reading — that's bad. Instead, Node.js asks libuv to do the work. libuv provides asynchronous, non-blocking I/O — it manages the Event Loop, Thread Pool, timers, networking, and communication with the operating system, allowing JavaScript to remain single-threaded while background operations execute efficiently.
 
-**Is libuv only for asynchronous operations?**
-Mostly yes — it provides asynchronous capabilities for Node.js. Without libuv, Node.js would behave much more like a synchronous program.
+**Is libuv only for asynchronous operations?** Mostly yes — it provides asynchronous capabilities for Node.js. Without libuv, Node.js would behave much more like a synchronous program.
 
 **Think of libuv as a manager 📋**
 
-```text
+```
 JavaScript Developer
         │
         ▼
@@ -102,7 +96,7 @@ Without libuv, Node.js would not be asynchronous.
 
 **Internal architecture:**
 
-```text
+```
 JavaScript Code
        │
        ▼
@@ -122,9 +116,9 @@ JavaScript Code
 Operating System
 ```
 
-**Is libuv the Event Loop?** This is a common interview question. The answer is **no** — libuv *implements* the Event Loop for Node.js:
+**Is libuv the Event Loop?** This is a common interview question. The answer is **no** — libuv _implements_ the Event Loop for Node.js:
 
-```text
+```
 Node.js
 │
 ├── V8 Engine
@@ -162,127 +156,129 @@ The Node.js Event Loop is a mechanism provided by libuv that continuously goes t
 
 ### Node.js Event Loop phases
 
-**1. Timers Phase**
-Executes callbacks whose timer has expired. Handles `setTimeout()` and `setInterval()`.
+**1. Timers Phase** Executes callbacks whose timer has expired. Handles `setTimeout()` and `setInterval()`.
+
 > A timer becomes eligible to run after its delay has expired — it does not guarantee execution at the exact specified time.
 
-**2. Pending Callbacks Phase**
-Executes certain system-level callbacks deferred from the previous Event Loop iteration. Handles some TCP connection errors and certain deferred I/O system callbacks.
+**2. Pending Callbacks Phase** Executes certain system-level callbacks deferred from the previous Event Loop iteration. Handles some TCP connection errors and certain deferred I/O system callbacks.
+
 > Application developers rarely interact with this phase directly.
 
-**3. Idle / Prepare Phase**
-An internal phase used by libuv to prepare for the Poll phase. Handles internal libuv operations only.
+**3. Idle / Prepare Phase** An internal phase used by libuv to prepare for the Poll phase. Handles internal libuv operations only.
+
 > No user code runs here.
 
 **4. Poll Phase** ⭐ (Most Important)
 Processes completed I/O operations and waits for new I/O events. Handles `fs.readFile()`, `fs.writeFile()`, database query callbacks, HTTP server request callbacks, network socket events, stream callbacks, and most completed asynchronous I/O.
+
 > This is the busiest and most important phase of the Event Loop.
 
-**5. Check Phase**
-Executes callbacks scheduled using `setImmediate()`.
+**5. Check Phase** Executes callbacks scheduled using `setImmediate()`.
 
-**6. Close Callbacks Phase**
-Executes cleanup callbacks for closed resources, such as `socket.on("close")`, stream close callbacks, and other resource cleanup callbacks.
+**6. Close Callbacks Phase** Executes cleanup callbacks for closed resources, such as `socket.on("close")`, stream close callbacks, and other resource cleanup callbacks.
 
 ### Special queues (not Event Loop phases)
 
 These aren't phases, but Node.js processes them before moving to the next Event Loop phase:
 
 1. **`process.nextTick()` queue** — executes callbacks immediately after the current JavaScript code finishes. It has the highest priority in Node.js.
-   ```js
-   process.nextTick(() => {
-     console.log("nextTick");
-   });
-   ```
+
+```
+process.nextTick(() => {
+  console.log("nextTick");
+});
+```
+
 2. **Promise microtask queue** — executes Promise callbacks after the `process.nextTick()` queue is empty. Handles `.then()`, `.catch()`, `.finally()`, and `async`/`await`.
-   ```js
-   Promise.resolve().then(() => {
-     console.log("Promise");
-   });
-   ```
+
+```
+Promise.resolve().then(() => {
+  console.log("Promise");
+});
+```
 
 ### Complete flow
 
-```text
-                Event Loop
+```
+        Event Loop
 
-        ┌────────────────────┐
-        │ 1. Timers          │
-        │ setTimeout()       │
-        │ setInterval()      │
-        └────────────────────┘
-                  │
-                  ▼
-        process.nextTick()
-                  │
-                  ▼
-        Promise Microtasks
-                  │
-                  ▼
-        ┌────────────────────┐
-        │ 2. Pending          │
-        │ Callbacks           │
-        └────────────────────┘
-                  │
-                  ▼
-        process.nextTick()
-                  │
-                  ▼
-        Promise Microtasks
-                  │
-                  ▼
-        ┌────────────────────┐
-        │ 3. Idle/Prepare     │
-        │ (Internal)          │
-        └────────────────────┘
-                  │
-                  ▼
-        process.nextTick()
-                  │
-                  ▼
-        Promise Microtasks
-                  │
-                  ▼
-        ┌────────────────────┐
-        │ 4. Poll             │
-        │ File System         │
-        │ Network             │
-        │ Database             │
-        │ Streams              │
-        └────────────────────┘
-                  │
-                  ▼
-        process.nextTick()
-                  │
-                  ▼
-        Promise Microtasks
-                  │
-                  ▼
-        ┌────────────────────┐
-        │ 5. Check             │
-        │ setImmediate()       │
-        └────────────────────┘
-                  │
-                  ▼
-        process.nextTick()
-                  │
-                  ▼
-        Promise Microtasks
-                  │
-                  ▼
-        ┌────────────────────┐
-        │ 6. Close Callbacks   │
-        │ socket.close()       │
-        └────────────────────┘
-                  │
-                  ▼
-        process.nextTick()
-                  │
-                  ▼
-        Promise Microtasks
-                  │
-                  ▼
-        Back to Timers Phase
+┌────────────────────┐
+│ 1. Timers          │
+│ setTimeout()       │
+│ setInterval()      │
+└────────────────────┘
+          │
+          ▼
+process.nextTick()
+          │
+          ▼
+Promise Microtasks
+          │
+          ▼
+┌────────────────────┐
+│ 2. Pending          │
+│ Callbacks           │
+└────────────────────┘
+          │
+          ▼
+process.nextTick()
+          │
+          ▼
+Promise Microtasks
+          │
+          ▼
+┌────────────────────┐
+│ 3. Idle/Prepare     │
+│ (Internal)          │
+└────────────────────┘
+          │
+          ▼
+process.nextTick()
+          │
+          ▼
+Promise Microtasks
+          │
+          ▼
+┌────────────────────┐
+│ 4. Poll             │
+│ File System         │
+│ Network             │
+│ Database             │
+│ Streams              │
+└────────────────────┘
+          │
+          ▼
+process.nextTick()
+          │
+          ▼
+Promise Microtasks
+          │
+          ▼
+┌────────────────────┐
+│ 5. Check             │
+│ setImmediate()       │
+└────────────────────┘
+          │
+          ▼
+process.nextTick()
+          │
+          ▼
+Promise Microtasks
+          │
+          ▼
+┌────────────────────┐
+│ 6. Close Callbacks   │
+│ socket.close()       │
+└────────────────────┘
+          │
+          ▼
+process.nextTick()
+          │
+          ▼
+Promise Microtasks
+          │
+          ▼
+Back to Timers Phase
 ```
 
 ## Streams & Buffers
@@ -295,14 +291,14 @@ A Stream is an object in Node.js that reads or writes data in small chunks inste
 
 Say you have:
 
-```js
+```
 const readStream = fs.createReadStream("movie.mp4");
 const writeStream = fs.createWriteStream("copy.mp4");
 ```
 
 The read stream reads data as a sequence of chunks. You listen for each chunk and write it manually:
 
-```js
+```
 readStream.on("data", (chunk) => {
   writeStream.write(chunk);
 });
@@ -314,7 +310,7 @@ readStream.on("end", () => {
 
 This works, but Node.js offers a shortcut so you don't have to write this boilerplate every time:
 
-```js
+```
 readStream.pipe(writeStream);
 ```
 
@@ -325,18 +321,17 @@ That one line automatically:
 - Ends the write stream when reading is complete
 - Handles the flow efficiently
 
-**What is `pipe()`?**
-`pipe()` is a method used to connect a readable stream to a writable stream. It automatically transfers data from the source to the destination in chunks without loading the entire data into memory.
+**What is `pipe()`?** `pipe()` is a method used to connect a readable stream to a writable stream. It automatically transfers data from the source to the destination in chunks without loading the entire data into memory.
 
 ### What is Backpressure?
 
 Imagine a readable stream producing data at 100 MB/sec while the writable stream can only consume 20 MB/sec:
 
 | Time | Produced | Written | Remaining in memory |
-|------|----------|---------|----------------------|
-| 1s   | 100 MB   | 20 MB   | 80 MB                |
-| 2s   | 200 MB   | 40 MB   | 160 MB               |
-| 10s  | 1000 MB  | 200 MB  | 800 MB               |
+| ---- | -------- | ------- | ------------------- |
+| 1s   | 100 MB   | 20 MB   | 80 MB               |
+| 2s   | 200 MB   | 40 MB   | 160 MB              |
+| 10s  | 1000 MB  | 200 MB  | 800 MB              |
 
 Memory keeps growing because the writer can't consume data as fast as the reader produces it — this is called **backpressure**.
 
@@ -346,7 +341,7 @@ Backpressure is a situation where a readable stream produces data faster than a 
 
 Whenever Node.js reads data from a file, a socket, an HTTP request, or a TCP connection, it receives raw bytes — and those bytes are stored in a Buffer. A Buffer is an object in Node.js that temporarily stores binary data in memory before it is processed or transferred.
 
-```js
+```
 const readStream = fs.createReadStream("movie.mp4");
 
 readStream.on("data", (chunk) => {
@@ -354,11 +349,56 @@ readStream.on("data", (chunk) => {
 });
 ```
 
-**What is the difference between a Buffer and a Stream?**
-A Stream is an object in Node.js that reads, writes, or transforms data in small chunks instead of loading the entire data into memory. A Buffer is an object that temporarily stores raw binary data in memory before it is processed or transferred. In simple terms, a stream *moves* the data, while a buffer temporarily *holds* the data.
+**What is the difference between a Buffer and a Stream?** A Stream is an object in Node.js that reads, writes, or transforms data in small chunks instead of loading the entire data into memory. A Buffer is an object that temporarily stores raw binary data in memory before it is processed or transferred. In simple terms, a stream _moves_ the data, while a buffer temporarily _holds_ the data.
 
-**Can a Stream work without a Buffer?**
-No. Streams transfer data, but the actual data is temporarily stored in Buffers. When a readable stream reads a chunk from a file or network, that chunk is stored in a Buffer before being processed or written to the destination.
+**Can a Stream work without a Buffer?** No. Streams transfer data, but the actual data is temporarily stored in Buffers. When a readable stream reads a chunk from a file or network, that chunk is stored in a Buffer before being processed or written to the destination.
+
+## Memory Leaks & Diagnosis
+
+### How do you check memory usage in a running Node process?
+
+```
+console.log(process.memoryUsage());
+// {
+//   rss: 42545152,        // total memory allocated for the process
+//   heapTotal: 20971520,  // total size of the allocated heap
+//   heapUsed: 14721624,   // memory actually in use
+//   external: 1234567,    // memory used by C++ objects bound to JS (Buffers etc.)
+// }
+```
+
+`heapUsed` is the number to watch over time. A normal pattern is a sawtooth — memory rises as objects are allocated, GC runs, memory drops. A **leak** looks like the sawtooth's floor steadily rising under steady (non-increasing) load — GC runs, frees what it can, but the baseline never returns to where it started.
+
+### What commonly causes memory leaks in a Node service?
+
+- **Unbounded module-level caches/arrays** — a `const cache = {}` or array declared outside a request handler that keeps growing with every request and is never evicted.
+- **Uncleared `setInterval`** — the timer's callback (and everything it closes over) stays alive until `clearInterval` is explicitly called.
+- **Event listeners never removed** — an `EventEmitter` (e.g. a DB pool, a pub/sub bus) with listeners attached via `.on()` but never `.off()`'d keeps whatever the listener closure references alive indefinitely.
+- **Closures holding references longer than needed** — a returned function that closes over a large object it doesn't even use.
+
+**Not a leak:** data that's local to a function/request handler with nothing outside referencing it after the function returns — even if the data was large, it's eligible for GC the moment the function ends.
+
+### What is a heap snapshot, and how do you use it to find a leak?
+
+A heap snapshot is a complete picture of everything alive in memory at a moment in time, including what's referencing what.
+
+```
+node --inspect index.js
+# open chrome://inspect, click "inspect", go to Memory tab
+```
+
+Or programmatically:
+
+```
+const v8 = require('v8');
+const fs = require('fs');
+const snapshotStream = v8.getHeapSnapshot();
+snapshotStream.pipe(fs.createWriteStream(`heap-${Date.now()}.heapsnapshot`));
+```
+
+**Workflow:** take snapshot 1 (baseline), apply load/time, take snapshot 2, compare. DevTools shows the delta by constructor/type — if `Array` instances grew from 1,000 to 45,000 between snapshots under proportional traffic, that object type is your leak. Click into an instance and check "Retainers" to trace exactly which variable/closure/listener is holding the reference that's preventing collection.
+
+Tools: `clinic.js` (`clinic heapprofiler`) gives a higher-level flamegraph view; `heapdump` package is a simpler alternative to the built-in `v8` module.
 
 ## Events & EventEmitter
 
@@ -368,7 +408,7 @@ EventEmitter is a built-in Node.js class that implements the publish-subscribe p
 
 **Basic example:**
 
-```js
+```
 const EventEmitter = require("events");
 
 const emitter = new EventEmitter();
@@ -382,12 +422,13 @@ emitter.emit("greet");
 ```
 
 **How it works:**
+
 - `emitter.on(...)` registers a listener — think **subscribe**.
 - `emitter.emit(...)` triggers the event — think **publish**.
 
 **Multiple listeners:**
 
-```js
+```
 const emitter = new EventEmitter();
 
 emitter.on("orderPlaced", () => console.log("Send Email"));
@@ -403,7 +444,7 @@ emitter.emit("orderPlaced");
 
 **Passing data:**
 
-```js
+```
 emitter.on("userCreated", (user) => {
   console.log(user.name);
 });
@@ -414,7 +455,7 @@ emitter.emit("userCreated", { name: "Harshit" });
 
 **Removing listeners:**
 
-```js
+```
 emitter.off("login", listener); // removes one listener
 emitter.removeAllListeners();   // removes every listener
 ```
@@ -425,7 +466,7 @@ emitter.removeAllListeners();   // removes every listener
 
 A callback is a function that is passed as an argument to another function so that it can be executed later, usually after a specific task is completed.
 
-```js
+```
 function greet(name, callback) {
   console.log("Hello " + name);
   callback();
@@ -461,7 +502,7 @@ An Error-First Callback is a Node.js convention where the first argument of a ca
 
 First, I log the error using a logging framework or monitoring service. Then I gracefully close open resources such as database connections, Redis connections, message queues, and the HTTP server. After cleanup, I terminate the process using `process.exit(1)` because the application's state may be inconsistent. Finally, I rely on a process manager such as PM2, Docker, or Kubernetes to automatically restart the application.
 
-```text
+```
 Log → Clean up → Exit → Restart
 ```
 
@@ -470,6 +511,34 @@ Log → Clean up → Exit → Restart
 ### What is Middleware?
 
 Middleware is a function that executes during the request-response lifecycle. It sits between the incoming request and the route handler. Middleware can execute code, modify the request or response, terminate the request, or pass control to the next middleware using `next()`. It is commonly used for authentication, logging, validation, CORS, and error handling.
+
+### How does Express middleware execution actually work?
+
+Each middleware receives `(req, res, next)` and either handles the request, modifies it, or calls `next()` to pass control to the next middleware in the chain. If `next()` is never called, the request hangs.
+
+```
+app.use((req, res, next) => {
+  console.log('Request received');
+  next(); // without this, the request never proceeds further
+});
+```
+
+### What is error-handling middleware?
+
+Middleware with **4 parameters** `(err, req, res, next)` — Express identifies it as an error handler specifically by this signature. It must be registered last, after all other routes/middleware.
+
+```
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Something went wrong' });
+});
+```
+
+Calling `next(err)` anywhere in the chain skips all remaining normal middleware and jumps straight to the nearest error-handling middleware.
+
+### How would you structure a Node/Express app for testability?
+
+Layer it: controller (handles req/res) → service (business logic) → repository (data access). This lets you unit test the service layer without spinning up Express or a real database, by injecting mock repositories.
 
 ## Authentication & Security
 
@@ -501,7 +570,7 @@ CORS allows or blocks requests from different domains to protect users from unau
 
 Rate Limiting restricts the number of requests a client can make within a specific time period to prevent abuse and protect the server.
 
-```js
+```
 const rateLimiter = new Map();
 
 function rateLimiterFn(clientIp, options = { windowMS: 60000, maxRequest: 5 }) {
@@ -545,8 +614,76 @@ console.log(rateLimiterFn("127.0.0.1", testOptions)); // { allowed: true }  (Hit
 console.log(rateLimiterFn("127.0.0.1", testOptions)); // { allowed: false, statusCode: 429, ... } (Hit 3 - Blocked!)
 ```
 
+## Database Connection Handling
+
+### Why does connection pooling matter?
+
+Opening a new DB connection per request is expensive (TCP handshake, auth) and doesn't scale — a connection pool maintains a set of reusable connections, and requests borrow/return them.
+
+If concurrent requests exceed the pool size, additional requests **queue** waiting for a free connection — this shows up as latency in the app layer, but the actual bottleneck is pool size vs concurrency, not the query itself. Diagnosing "slow API" issues should include checking pool utilization metrics before assuming the DB query itself is slow.
+
+### What is the N+1 query problem?
+
+Fetching a list, then making one additional query per item to get related data — instead of one query with a join or a single batched query.
+
+```
+// N+1 - one query for users, then one query PER user for their orders
+const users = await db.user.findMany();
+for (const user of users) {
+  user.orders = await db.order.findMany({ where: { userId: user.id } });
+}
+```
+
+Fix: use eager loading/joins (`include` in Prisma) or a single batched query, so the total query count doesn't scale with result size.
+
 ## Scaling
 
 ### What is Clustering in Node.js?
 
 Clustering creates multiple Node.js processes so the application can use all CPU cores, improving performance and scalability.
+
+### How does the `cluster` module actually work?
+
+`cluster` forks multiple Node.js processes (workers), each with its own event loop and V8 instance, allowing an app to use multiple CPU cores — since a single Node process only uses one core by default.
+
+```
+const cluster = require('cluster');
+const os = require('os');
+
+if (cluster.isPrimary) {
+  const numCPUs = os.cpus().length;
+  for (let i = 0; i < numCPUs; i++) cluster.fork();
+} else {
+  require('./server'); // each worker runs the actual server
+}
+```
+
+The primary process distributes incoming connections across workers (round-robin on most platforms). Workers don't share memory — they're separate processes, so any shared state (session data, in-memory caches) needs an external store like Redis, not a module-level JS variable.
+
+### Cluster vs Worker Threads vs Child Process — when do you use which?
+
+Cluster
+
+Use case: Scale an HTTP server across CPU cores — the primary process forks multiple worker processes, each running a full copy of your server, distributing incoming connections between them.
+
+Memory: Separate processes. No shared memory — each worker has its own V8 instance and heap. Any shared state (sessions, caches) needs an external store like Redis.
+
+Overhead: Higher — each worker is a full Node.js process.
+
+Worker Threads
+
+Use case: CPU-intensive JavaScript computation (image processing, heavy calculations, encryption) that would otherwise block the single event loop thread.
+
+Memory: Can share memory directly via SharedArrayBuffer, unlike Cluster or Child Process.
+
+Overhead: Lower — threads, not full processes, so cheaper to spin up.
+
+Child Process
+
+Use case: Run a separate program or script (not necessarily Node/JS — could be a shell command, a Python script, etc.), or isolate a piece of work so a crash doesn't take down the main process.
+
+Memory: Separate process, no shared memory.
+
+Overhead: Higher — full process per child.
+
+Worker threads are the right choice for something like heavy synchronous computation (image processing, complex calculations) that would otherwise block the single event loop thread. Cluster is the right choice for scaling a stateless HTTP server to use all CPU cores.

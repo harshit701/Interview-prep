@@ -31,7 +31,7 @@ A runtime environment is the software that provides everything JavaScript needs 
 
 When JavaScript runs in a browser like Chrome, the browser provides the runtime:
 
-```text
+```
 Browser Runtime
 ├── JavaScript Engine (V8)
 ├── Web APIs
@@ -39,7 +39,6 @@ Browser Runtime
 ├── Callback Queue
 └── DOM
 ```
-
 > Node.js provides its own runtime with different capabilities (libuv, the file system, HTTP, streams). That's covered in detail in the **Node.js Interview Prep** file.
 
 ## Scope & Closures
@@ -50,7 +49,7 @@ A Lexical Environment is the internal structure that JavaScript creates for ever
 
 **Think of it like a folder 📁** — imagine every function gets its own folder:
 
-```text
+```
 outer() Folder
 ├── b = 20
 ├── function inner()
@@ -59,7 +58,7 @@ outer() Folder
 
 Now `inner()` gets another folder:
 
-```text
+```
 inner() Folder
 ├── c = 30
 └── Link to outer() Folder
@@ -73,7 +72,7 @@ A function can access variables from its own scope and from the outer scopes whe
 
 **How does `inner()` find the variable `a`?**
 
-```js
+```
 let a = 10;
 
 function outer() {
@@ -100,7 +99,7 @@ The Scope Chain is the process JavaScript uses to find a variable. It first look
 
 A Closure is a function bundled together with its Lexical Environment. It allows an inner function to access the variables of its outer function even after the outer function has finished executing. This happens because the inner function keeps a reference to the outer function's Lexical Environment.
 
-```js
+```
 function outer() {
   let count = 0;
 
@@ -133,6 +132,38 @@ The variable is not removed from memory because the inner function still has a r
 - React Hooks
 - Middleware in Node.js
 
+### Why does `var` inside a loop behave differently from `let` in closures?
+
+```
+for (var i = 0; i < 3; i++) {
+  setTimeout(() => console.log(i), 0);
+}
+// Output: 3, 3, 3
+```
+
+`var` is function-scoped, not block-scoped. There is only **one** `i` shared across all iterations. By the time the `setTimeout` callbacks run (after the loop finishes), `i` is already `3` for all of them.
+
+```
+for (let i = 0; i < 3; i++) {
+  setTimeout(() => console.log(i), 0);
+}
+// Output: 0, 1, 2
+```
+
+`let` creates a **new binding per iteration**. Each closure captures its own separate `i`, so each callback logs the value it captured at that iteration.
+
+**Fix with `var` (pre-ES6 workaround, sometimes asked as a follow-up):**
+
+```
+for (var i = 0; i < 3; i++) {
+  (function (j) {
+    setTimeout(() => console.log(j), 0);
+  })(i);
+}
+```
+
+An IIFE creates a new scope per iteration, manually replicating what `let` does automatically.
+
 ## Hoisting & Temporal Dead Zone
 
 ### What is Hoisting?
@@ -155,7 +186,7 @@ That's why we can call a function before its declaration, but a `var` variable o
 
 ### What is the state of `let` and `const` during the Creation Phase?
 
-`let` and `const` are not assigned any JavaScript value during the Creation Phase. They are allocated memory, but they remain _uninitialized_ until execution reaches their declaration. This is why the Temporal Dead Zone (TDZ) exists.
+`let` and `const` are not assigned any JavaScript value during the Creation Phase. They are allocated memory, but they remain *uninitialized* until execution reaches their declaration. This is why the Temporal Dead Zone (TDZ) exists.
 
 ### What does "uninitialized" mean?
 
@@ -197,7 +228,7 @@ Because JavaScript treats functions as first-class citizens, they have the same 
 
 **Example — assigned to a variable:**
 
-```js
+```
 function greet(name) {
   return `Hello ${name}`;
 }
@@ -210,7 +241,7 @@ console.log(sayHello("Harshit"));
 
 **Example — returned from another function:**
 
-```js
+```
 function multiply(multiplier) {
   return function (num) {
     return num * multiplier;
@@ -225,7 +256,7 @@ console.log(double(5));
 
 **Example — stored inside an object:**
 
-```js
+```
 const calculator = {
   add(a, b) {
     return a + b;
@@ -237,7 +268,7 @@ console.log(calculator.add(5, 6));
 
 **Real-world examples:**
 
-```js
+```
 // Passed as a value to app.get()
 app.get("/users", getUsers);
 
@@ -251,7 +282,7 @@ A Higher Order Function (HOF) is a function that either accepts one or more func
 
 Common built-in examples: `map()`, `filter()`, `reduce()`, `setTimeout()`, `forEach()`, `sort()` — all of these accept a function as an argument.
 
-```js
+```
 const numbers = [1, 2, 3];
 
 const doubled = numbers.map((num) => num * 2);
@@ -264,7 +295,7 @@ const even = numbers.filter((num) => num % 2 === 0);
 
 Express middleware is another example — `app.get()` accepts functions as arguments (`authMiddleware`, `getUsers`), so it's a Higher Order Function too:
 
-```js
+```
 app.get("/users", authMiddleware, getUsers);
 ```
 
@@ -272,7 +303,7 @@ app.get("/users", authMiddleware, getUsers);
 
 Currying is a technique where a function that takes multiple arguments is transformed into a sequence of functions, each taking one argument at a time.
 
-```js
+```
 function multiply(a) {
   return function (b) {
     return a * b;
@@ -287,7 +318,7 @@ console.log(multiply(2)(5));
 
 Function composition is a technique where the output of one function becomes the input of the next function. Multiple small functions are chained together to produce a final result.
 
-```js
+```
 function double(num) {
   return num * 2;
 }
@@ -306,9 +337,31 @@ console.log(result);
 // Output: "25"
 ```
 
-```text
+```
 10 → double() → 20 → addFive() → 25 → toString() → "25"
 ```
+
+### What is memoization?
+
+Memoization is caching the result of a function call so repeated calls with the same arguments return the cached result instead of recomputing.
+
+```
+function memoize(fn) {
+  const cache = new Map();
+  return function (...args) {
+    const key = JSON.stringify(args);
+    if (cache.has(key)) return cache.get(key);
+    const result = fn(...args);
+    cache.set(key, result);
+    return result;
+  };
+}
+```
+
+**Limitations to know:**
+- `JSON.stringify` as a cache key breaks on functions, `undefined`, and key-order differences (`{a:1,b:2}` vs `{b:2,a:1}`).
+- Cache grows unbounded — in a long-running Node process this is a real memory leak, not just a theoretical concern. Fix with an LRU eviction strategy or a `Map` with a max size.
+- No built-in invalidation — if underlying data changes, the cache serves stale results forever unless you add a TTL.
 
 ## `this`, call, apply, and bind
 
@@ -316,7 +369,7 @@ console.log(result);
 
 `this` is a special keyword that refers to the object that is calling the function. Its value is decided at the time the function is called, not when it is created.
 
-```js
+```
 const person = {
   name: "HD",
   greet() {
@@ -332,7 +385,7 @@ Here, `this === person` because `person` is calling `greet()`.
 
 **Normal function:**
 
-```js
+```
 const person = {
   name: "HD",
   greet: function () {
@@ -346,7 +399,7 @@ person.greet();
 
 **Arrow function:**
 
-```js
+```
 const person = {
   name: "HD",
   greet: () => {
@@ -364,7 +417,7 @@ Why? Because Arrow Functions don't create their own `this`. Instead, they use th
 
 **`call`** immediately invokes a function while explicitly setting the value of `this`. Any additional arguments are passed individually.
 
-```js
+```
 const person1 = {
   name: "HD",
   greet() {
@@ -379,7 +432,7 @@ person1.greet.call(person2);
 
 With arguments:
 
-```js
+```
 function greet(city, country) {
   console.log(`Hello I'm ${this.name} from ${city}, ${country}`);
 }
@@ -391,7 +444,7 @@ greet.call(person, "Ahmedabad", "India");
 
 **`apply`** immediately invokes a function while explicitly setting the value of `this`. The only difference from `call()` is that arguments are passed as an array.
 
-```js
+```
 greet.apply(person, ["Ahmedabad", "India"]);
 ```
 
@@ -414,7 +467,6 @@ Once the asynchronous task completes, its callback is placed into the Callback Q
 ### What is the Event Loop?
 
 The Event Loop is a mechanism in JavaScript that continuously monitors the Call Stack. When the Call Stack becomes empty, it checks the Microtask Queue first and moves all pending callbacks to the Call Stack for execution. Once the Microtask Queue is empty, it processes callbacks from the Callback Queue. This allows JavaScript to handle asynchronous operations without blocking the main thread.
-
 > Node.js implements a more detailed, multi-phase Event Loop via libuv — see the **Node.js Interview Prep** file for the phase-by-phase breakdown.
 
 ### What is Starvation?
@@ -431,7 +483,7 @@ Promises and `async`/`await` are both used to handle asynchronous operations. A 
 
 ### How does the event loop execute the following code?
 
-```js
+```
 console.log("A");
 
 setTimeout(() => {
@@ -455,7 +507,7 @@ console.log("F");
 
 **Output:**
 
-```text
+```
 A
 F
 D
@@ -480,13 +532,171 @@ E
 
 `Promise.any()` accepts multiple Promises and returns the first fulfilled Promise. It ignores rejected Promises unless all Promises reject. If every Promise rejects, it rejects with an `AggregateError`.
 
+## Equality, Coercion & Memory Model
+
+### What is the difference between `==` and `===`?
+
+`===` compares both value and type with no coercion. `==` coerces both operands to a common type before comparing, which can produce unintuitive results.
+
+```
+[] == false        // true  → [] → '' → 0, false → 0
+null == undefined  // true  → special case
+null === undefined // false → different types
+NaN == NaN          // false → NaN never equals anything
+0 == '0'            // true  → '0' coerces to 0
+```
+
+**Interview trap:**
+
+```
+console.log([] == ![]);
+// true
+```
+
+`![]` evaluates first → `false` (any object is truthy, `!` flips it). Now it's `[] == false` → `[]` → `''` → `0`, `false` → `0` → `true`.
+
+### How do you correctly check for `NaN`?
+
+`NaN === NaN` is `false`, so `x === NaN` never works. Use `Number.isNaN(x)`.
+
+### Are objects compared by value or by reference?
+
+By reference. `{} === {}` is always `false`, even with identical contents, because they are two separate objects in memory.
+
+```
+const obj1 = { x: 1 };
+const obj2 = { x: 1 };
+console.log(obj1 === obj2); // false — different objects
+
+const obj3 = obj1;
+console.log(obj1 === obj3); // true — same object in memory
+```
+
+`===` on objects only returns `true` when both sides point to the exact same object — never when two independently created objects merely look the same.
+
+### Are primitives copied by value or reference?
+
+By value.
+
+```
+let a = 10;
+let b = a;
+b = 20;
+console.log(a); // 10 — unaffected
+```
+
+Objects copy the **reference** (not the object itself):
+
+```
+let obj1 = { x: 10 };
+let obj2 = obj1;
+obj2.x = 20;
+console.log(obj1.x); // 20 — same object, both variables point to it
+```
+
+### Is JavaScript "pass by reference"?
+
+No — JavaScript is always pass-by-value, but for objects, the value being passed is the reference itself.
+
+```
+function reassign(obj) {
+  obj = { x: 999 }; // reassigns the LOCAL parameter only
+}
+const myObj = { x: 1 };
+reassign(myObj);
+console.log(myObj.x); // 1 — unchanged
+
+function mutate(obj) {
+  obj.x = 999; // mutates THROUGH the shared reference
+}
+mutate(myObj);
+console.log(myObj.x); // 999 — changed
+```
+
+**Rule:** reassignment breaks the shared reference (only affects the local copy). Mutation goes through the shared reference (affects the original too).
+
+## Deep vs Shallow Copy
+
+### What is a shallow copy?
+
+A shallow copy duplicates only the top level of an object. Nested objects/arrays are still shared by reference.
+
+```
+const original = { a: 1, b: { c: 2 } };
+const copy = { ...original };
+copy.a = 99;
+copy.b.c = 100;
+console.log(original.a, original.b.c); // 1, 100
+```
+
+`a` is a primitive, so it's copied by value — unaffected. `b` is an object, so spread only copies the reference to it — mutating `copy.b.c` also changes `original.b.c` because both point to the same nested object.
+
+Shallow copy methods: `{...obj}`, `Object.assign({}, obj)`, `arr.slice()`, `[...arr]`.
+
+### What is a deep copy, and how do you do it?
+
+A deep copy duplicates every level of nesting, producing fully independent objects.
+
+```
+const deep = structuredClone(original);
+```
+
+`structuredClone` is the modern built-in (Node 17+) way to deep clone. It correctly handles `Date`, `Map`, `Set`, nested objects/arrays, and even circular references.
+
+### What's wrong with `JSON.parse(JSON.stringify(obj))` for deep cloning?
+
+- Drops `undefined` values and functions entirely
+- Converts `Date` objects to strings
+- Throws on circular references
+- Mangles `Map`, `Set`, `RegExp`
+- Converts `NaN`/`Infinity` to `null`
+
+`structuredClone` is preferred for all these cases. Neither approach preserves class prototypes — cloning a class instance gives back a plain object, not an instance of that class.
+
+## Garbage Collection
+
+### How does JavaScript manage memory?
+
+JavaScript uses automatic garbage collection via the **mark-and-sweep** algorithm. The engine starts from "roots" (global object, active call stack variables), marks everything reachable by traversing references, and sweeps (frees) anything not marked.
+
+The older reference-counting model is not used, because it fails on circular references — two objects referencing each other never hit a count of zero even when unreachable from root. Mark-and-sweep fixes this by checking reachability, not reference count.
+
+### What commonly causes memory leaks in Node.js?
+
+- **Unbounded module-level caches/arrays** — data pushed into a global structure that's never evicted.
+- **Uncleared `setInterval`/`setTimeout`** — the timer and its closure stay alive until explicitly cleared.
+- **Event listeners never removed** — an `EventEmitter` with listeners attached but never `.off()`'d keeps everything the listener closure references alive.
+- **Closures retaining large objects longer than needed.**
+
+**Test for whether something leaks:** does anything long-lived (module scope, a closure held by a long-lived object) still reference this data after it's no longer needed? If growth is unbounded and tied to a repeating action (requests, connections), it's a leak. If a variable is function-scoped and nothing outlives the function, it's not.
+
+```
+// LEAKS - module-level, unbounded, grows per request
+const requestLog = [];
+app.get('/api/data', (req, res) => {
+  requestLog.push({ timestamp: Date.now() });
+  res.json({ ok: true });
+});
+```
+
+### Does setting a variable to `null` force garbage collection?
+
+No. It only removes that one reference. If other references to the same object still exist, it remains reachable. GC timing itself is also non-deterministic — you can't force immediate collection in production code.
+
+### How do you diagnose a memory leak in a running Node process?
+
+1. Monitor `process.memoryUsage().heapUsed` over time — a steadily rising floor (not just normal sawtooth GC behavior) signals a real leak.
+2. Take two heap snapshots (`node --inspect` + Chrome DevTools, or the `v8` module's `getHeapSnapshot()`) under load, spaced apart in time.
+3. Compare snapshots — look for object types whose count/retained size keeps growing.
+4. Use the "Retainers" panel on a growing object to trace back which variable/closure/listener is holding the reference.
+
 ## Performance Optimization Techniques
 
 ### What is Debouncing?
 
 Debouncing is a technique that delays the execution of a function until a specified amount of time has passed since the last event occurred.
 
-```js
+```
 function debounce(fn, delay) {
   let timer;
 
@@ -516,7 +726,7 @@ debouncedSearch("test");
 
 Throttling is a technique that limits how often a function can execute within a specified time interval.
 
-```js
+```
 function throttle(fn, delay) {
   let shouldWait = false;
 
@@ -566,7 +776,7 @@ This saves memory and avoids duplicate code.
 
 # Example
 
-```javascript
+```
 const person = {
   greet() {
     console.log("Hello");
@@ -584,7 +794,7 @@ user.greet();
 
 Output
 
-```text
+```
 Hello
 ```
 
@@ -594,7 +804,7 @@ Although `greet()` is not inside `user`, JavaScript finds it in `person`.
 
 # How JavaScript Searches
 
-```text
+```
 user
 
 ↓
@@ -630,7 +840,7 @@ When JavaScript cannot find a property in the current object, it searches the pr
 
 If it still cannot find it, it continues searching up the chain until it reaches `null`.
 
-```text
+```
 user
 
 ↓
@@ -650,7 +860,7 @@ null
 
 # Example
 
-```javascript
+```
 const person = {
   country: "India",
 };
@@ -666,7 +876,7 @@ console.log(user.country);
 
 Output
 
-```text
+```
 India
 ```
 
@@ -680,7 +890,7 @@ JavaScript looks for `country`:
 
 # Class Example
 
-```javascript
+```
 class Animal {
   speak() {
     console.log("Animal Sound");
@@ -696,7 +906,7 @@ dog.speak();
 
 Output
 
-```text
+```
 Animal Sound
 ```
 
@@ -712,5 +922,3 @@ Classes are just a cleaner syntax over prototypes.
 - Saves memory
 - Avoids duplicate methods
 - Allows inheritance between objects
-
----

@@ -100,7 +100,7 @@ These cause React to render again and begin the reconciliation process.
 
 ### Diffing is a part of reconciliation, not the whole reconciliation process.
 
-```text
+```
 Reconciliation
 │
 ├── 1. Render components
@@ -136,7 +136,7 @@ The Commit Phase is where React applies the necessary changes to the Real DOM, u
 
 ### Rendering phases
 
-```text
+```
 User Action
       │
       ▼
@@ -223,7 +223,7 @@ However, if you need to assign a key to a fragment (for example, inside a list),
 
 Example:
 
-```js
+```
 import { Fragment } from "react";
 
 function App() {
@@ -237,7 +237,7 @@ function App() {
 
 or
 
-```js
+```
 import { Fragment } from "react";
 
 function List() {
@@ -265,7 +265,7 @@ Historically React had two types:
 
 Today:
 
-_Functional Components_ are the standard approach.
+*Functional Components* are the standard approach.
 
 ### 1. Functional Components
 
@@ -275,7 +275,7 @@ A functional component is a JavaScript function that returns JSX.
 
 Example:
 
-```js
+```
 function Welcome() {
   return <h1>Hello React</h1>;
 }
@@ -289,7 +289,7 @@ We use components like HTML tags.
 
 Example:
 
-```js
+```
 function App() {
   return <Welcome />;
 }
@@ -297,7 +297,7 @@ function App() {
 
 Notice:
 
-```js
+```
 <Welcome />
 ```
 
@@ -313,7 +313,7 @@ Example:
 
 Small components:
 
-```js
+```
 function Avatar() {
   return <img />;
 }
@@ -325,7 +325,7 @@ function UserName() {
 
 Combine them:
 
-```js
+```
 function Profile() {
   return (
     <div>
@@ -338,7 +338,7 @@ function Profile() {
 
 Now:
 
-```text
+```
 Profile
 
 ├── Avatar
@@ -354,7 +354,7 @@ The React component lifecycle describes the different stages a component goes th
 
 A component generally has three major phases:
 
-```text
+```
 Mounting
    |
    |
@@ -374,7 +374,7 @@ You open a website.
 
 Initially:
 
-```text
+```
 Browser
    |
    |
@@ -397,7 +397,7 @@ Example:
 
 Counter:
 
-```js
+```
 function Counter() {
   const [count, setCount] = useState(0);
 
@@ -407,13 +407,13 @@ function Counter() {
 
 Initial:
 
-```text
+```
 count = 0
 ```
 
 User clicks:
 
-```text
+```
 count = 1
 ```
 
@@ -435,7 +435,7 @@ You close a modal:
 
 Before:
 
-```text
+```
 App
 
 |
@@ -445,7 +445,7 @@ Modal
 
 After closing:
 
-```text
+```
 App
 ```
 
@@ -459,7 +459,7 @@ Props are read-only data passed from a parent component to a child component. Th
 
 Component:
 
-```js
+```
 function ProductCard(props) {
   return (
     <div>
@@ -472,7 +472,7 @@ function ProductCard(props) {
 
 Use it:
 
-```js
+```
 <ProductCard
     name="Laptop"
     price="1000"
@@ -488,7 +488,7 @@ React passes:
 
 First component:
 
-```js
+```
 props = {
   name: "Laptop",
   price: "1000",
@@ -497,7 +497,7 @@ props = {
 
 Second component:
 
-```js
+```
 props = {
   name: "Phone",
   price: "500",
@@ -516,7 +516,7 @@ React follows:
 
 Data always moves:
 
-```text
+```
 Parent
 |
 |
@@ -544,7 +544,7 @@ Let's build a simple counter.
 
 Without state:
 
-```js
+```
 function Counter() {
   let count = 0;
 
@@ -594,7 +594,7 @@ It does not track ordinary variables.
 
 Example:
 
-```js
+```
 let age = 20;
 
 age = 21;
@@ -606,7 +606,7 @@ React has no idea this happened.
 
 React provides a Hook called useState.
 
-```js
+```
 import { useState } from "react";
 
 function Counter() {
@@ -634,7 +634,7 @@ Let's connect this to everything we've already learned.
 
 When the component first loads:
 
-```text
+```
 Counter()
 
 ↓
@@ -664,7 +664,7 @@ setCount(1)
 
 React does this:
 
-```text
+```
 State Changed
 
 ↓
@@ -706,7 +706,7 @@ Interview favorite.
 
 Suppose:
 
-```text
+```
 setCount(count + 1);
 
 setCount(count + 1);
@@ -746,7 +746,7 @@ Final:
 
 Use a functional update.
 
-```text
+```
 setCount(previous => previous + 1);
 
 setCount(previous => previous + 1);
@@ -772,7 +772,7 @@ React batches multiple state updates together to improve performance.
 
 Example:
 
-```text
+```
 setName("John");
 
 setAge(30);
@@ -802,7 +802,7 @@ An event is an action or occurrence that happens in the browser, such as a click
 
 React makes this much simpler.
 
-```js
+```
 function App() {
   function handleClick() {
     console.log("Clicked");
@@ -814,7 +814,7 @@ function App() {
 
 Notice:
 
-```js
+```
 onClick;
 ```
 
@@ -830,9 +830,9 @@ Event bubbling is the process where an event starts at the target element and pr
 
 ### Difference between preventDefault() and stopPropagation()?
 
-```text
+```
 | `preventDefault()`                 | `stopPropagation()`                       |
-| ---------------------------------- | ----------------------------------------- |
+| ----------------------------------- | ------------------------------------------- |
 | Stops the browser's default action | Stops the event from bubbling             |
 | Doesn't stop propagation           | Doesn't stop the browser's default action |
 ```
@@ -845,7 +845,7 @@ A controlled component is a form element whose value is managed by React state u
 
 A key is a unique identifier used by React to identify elements in a list so it can efficiently update, add, or remove items during reconciliation.
 
-```js
+```
 products.map((product) => <ProductCard key={product.id} name={product.name} />);
 ```
 
@@ -853,7 +853,7 @@ products.map((product) => <ProductCard key={product.id} name={product.name} />);
 
 A controlled component is a form element whose value is controlled by React state.
 
-```js
+```
 import { useState } from "react";
 
 function Login() {
@@ -873,7 +873,7 @@ function Login() {
 
 An uncontrolled component stores its own state in the DOM instead of React state.
 
-```js
+```
 import { useRef } from "react";
 
 function Login() {
@@ -911,7 +911,7 @@ useState is a React Hook that allows functional components to store and update s
 
 useState returns an array containing the current state value and a state update function.
 
-```js
+```
 const [count, setCount];
 ```
 
@@ -929,7 +929,7 @@ Let's start with a simple question.
 
 Suppose we want to fetch users from an API.
 
-```js
+```
 function Users() {
   fetch("/api/users");
 
@@ -945,7 +945,7 @@ Why?
 
 Remember what happens when state changes.
 
-```text
+```
 State Changes
 
 ↓
@@ -959,7 +959,7 @@ Component Function Runs Again
 
 That means:
 
-```text
+```
 Users()
 
 ↓
@@ -1008,7 +1008,7 @@ Fetching data is.
 
 useEffect is a React Hook used to perform side effects after a component has rendered.
 
-```text
+```
 Remember this:
 
 Render UI First
@@ -1026,7 +1026,7 @@ There are three common patterns.
 
 ### 1. No Dependency Array
 
-```js
+```
 useEffect(() => {
   console.log("Runs");
 });
@@ -1034,7 +1034,7 @@ useEffect(() => {
 
 Runs:
 
-```text
+```
 Initial Render
 
 ↓
@@ -1044,7 +1044,7 @@ Every Re-render
 
 ### 2. Empty Dependency Array
 
-```js
+```
 useEffect(() => {
   console.log("Runs Once");
 }, []);
@@ -1052,7 +1052,7 @@ useEffect(() => {
 
 Runs:
 
-```text
+```
 Component Mounts
 
 ↓
@@ -1066,7 +1066,7 @@ Never Again
 
 ### 3. Dependencies
 
-```js
+```
 useEffect(() => {
   console.log("User Changed");
 }, [userId]);
@@ -1074,7 +1074,7 @@ useEffect(() => {
 
 Runs:
 
-```text
+```
 Mount
 
 ↓
@@ -1115,7 +1115,7 @@ Storing mutable values that shouldn't trigger re-renders
 ### What's the difference between useState and useRef?
 
 | `useState`                     | `useRef`                                |
-| ------------------------------ | --------------------------------------- |
+| -------------------------------- | ------------------------------------------ |
 | Stores UI state                | Stores mutable values                   |
 | Triggers re-render             | Does **not** trigger re-render          |
 | Returns `[value, setter]`      | Returns `{ current }`                   |
@@ -1153,8 +1153,7 @@ Memoization is the process of storing the result of an expensive computation and
 
 **useMemo**
 
-```text
-
+```
 React provides this optimization through:
 
 const value = useMemo(callback, dependencies);
@@ -1162,24 +1161,23 @@ const value = useMemo(callback, dependencies);
 
 Example:
 
-```js
+```
 const total = useMemo(() => {
   return expensiveCalculation(count);
 }, [count]);
 ```
 
-```text
+```
 Now React says:
 
 "Only execute this calculation if count changes."
-
 ```
 
 ## useMemo
 
 useMemo is a React Hook that memoizes the result of an expensive calculation and recomputes it only when its dependencies change.
 
-```js
+```
 const memoizedValue = useMemo(() => {
   return expensiveCalculation();
 }, [dependencies]);
@@ -1201,7 +1199,7 @@ Avoid it for cheap calculations because memoization itself has a cost. Use it on
 
 useCallback memoizes a function so React returns the same function reference until its dependencies change.
 
-```js
+```
 const memoizedFunction = useCallback(() => {}, [dependencies]);
 ```
 
@@ -1227,13 +1225,53 @@ It only returns the same function reference.
 
 A component still re-renders when its state or props change.
 
+### What is `React.memo`, and how is it different from `useMemo`/`useCallback`?
+
+`React.memo` is a higher-order component that wraps a component and skips re-rendering it if its **props** haven't changed (shallow comparison).
+
+```
+const ProductCard = React.memo(function ProductCard({ name, price }) {
+  console.log('Rendering ProductCard');
+  return <div>{name} - {price}</div>;
+});
+```
+
+If the parent re-renders but passes the same `name` and `price` values, `ProductCard` skips re-rendering.
+
+**Why `React.memo` alone often doesn't work as expected:** if the parent passes a function or object as a prop, a new reference is created on every parent render — even if the function/object is logically "the same." Shallow comparison sees a new reference and re-renders anyway.
+
+```
+function Parent() {
+  const [count, setCount] = useState(0);
+  const handleClick = () => console.log('clicked'); // NEW function every render
+
+  return <ProductCard onClick={handleClick} />; // React.memo doesn't help here
+}
+```
+
+Fix: wrap the function passed down with `useCallback` so it keeps the same reference across renders, allowing `React.memo`'s shallow comparison to actually skip the re-render.
+
+```
+const handleClick = useCallback(() => console.log('clicked'), []);
+```
+
+**Summary of the three:**
+
+| | Memoizes | Prevents |
+|---|---|---|
+| `useMemo` | A computed **value** | Recalculating that value |
+| `useCallback` | A **function reference** | Creating a new function each render |
+| `React.memo` | A **component's render output** | Re-rendering when props are unchanged |
+
+`useCallback` and `React.memo` are usually used together — `useCallback` keeps the function reference stable, `React.memo` uses that stability to actually skip re-rendering the child.
+
 ## Before Learning useContext
 
 Let's understand the problem.
 
 Suppose we have this component tree:
 
-```text
+```
 App
 │
 ├── Navbar
@@ -1249,7 +1287,7 @@ App
 
 The logged-in user's name is stored in App.
 
-```js
+```
 function App() {
   const [user] = useState({
     name: "HD",
@@ -1259,9 +1297,9 @@ function App() {
 
 Now imagine UserCard needs the user's name.
 
-_Without Context_
+*Without Context*
 
-```text
+```
 How do we get it there?
 
 App
@@ -1283,7 +1321,7 @@ Every intermediate component has to receive the user prop and pass it down.
 
 Example:
 
-```js
+```
 <App user={user} />
 
 ↓
@@ -1310,7 +1348,7 @@ They only pass it down.
 
 Prop drilling is the process of passing props through multiple intermediate components that don't actually use them, just so deeper components can access the data.
 
-```text
+```
 Example:
 
 App
@@ -1346,7 +1384,7 @@ React says:
 
 Three steps:
 
-```text
+```
 Create Context
 
 ↓
@@ -1360,7 +1398,7 @@ Consume Data
 
 #### Step 1: Create Context
 
-```js
+```
 import { createContext } from "react";
 
 export const UserContext = createContext(null);
@@ -1372,7 +1410,7 @@ Think of it as an empty container.
 
 #### Step 2: Provide Data
 
-```js
+```
 <UserContext.Provider value={user}>
   <Dashboard />
 </UserContext.Provider>
@@ -1382,7 +1420,7 @@ Now every component inside Dashboard can access user.
 
 #### Step 3: Consume Data
 
-```js
+```
 import { useContext } from "react";
 
 const user = useContext(UserContext);
@@ -1415,7 +1453,7 @@ Context is for data that many components need.
 
 ## What is useContext?
 
-_useContext_ is a React Hook that allows a component to read the current value of a Context without passing props through intermediate components.
+*useContext* is a React Hook that allows a component to read the current value of a Context without passing props through intermediate components.
 
 ## What problem does it solve?
 
@@ -1439,11 +1477,42 @@ Yes.
 
 If a Provider's value changes, every consuming component that reads that Context is re-rendered.
 
+### Why is a single large Context often a performance problem?
+
+When a Provider's value changes, **every** component consuming that Context re-renders — even if it only reads a small part of the value that didn't actually change.
+
+```
+const AppContext = createContext();
+
+function App() {
+  const [user, setUser] = useState({ name: 'HD' });
+  const [theme, setTheme] = useState('light');
+
+  return (
+    <AppContext.Provider value={{ user, theme, setUser, setTheme }}>
+      <Dashboard />
+    </AppContext.Provider>
+  );
+}
+```
+
+If `theme` changes, every component consuming `AppContext` re-renders — including ones that only care about `user`, because the entire context object is a new reference on every Provider render.
+
+**Fixes:**
+- Split into multiple, narrower Contexts (`UserContext`, `ThemeContext`) so components only re-render when the specific value they consume changes.
+- Memoize the context value with `useMemo` so it doesn't create a new object reference on every render unless its actual contents changed.
+
+```
+const value = useMemo(() => ({ user, theme, setUser, setTheme }), [user, theme]);
+```
+
+This is a common follow-up after any Context question — interviewers often ask "does Context cause performance issues" specifically to see if you know about this re-render-everything behavior, not just how to set up a Provider.
+
 ## What is a Reducer?
 
 A reducer is a pure function that takes the current state and an action, then returns a new state without mutating the existing one.
 
-```js
+```
 function reducer(state, action) {
   if (action.type === "increment") {
     return state + 1;
@@ -1467,7 +1536,7 @@ An action is just a plain JavaScript object describing what happened.
 
 Example:
 
-```js
+```
 {
   type: "increment";
 }
@@ -1495,13 +1564,13 @@ The reducer decides how the state changes.
 
 Instead of calling:
 
-```js
+```
 setCount(...)
 ```
 
 you call:
 
-```js
+```
 dispatch({
   type: "increment",
 });
@@ -1515,7 +1584,7 @@ Think of dispatch as:
 
 This is one of the most important diagrams in React.
 
-```text
+```
 Button Click
 │
 ▼
@@ -1541,7 +1610,7 @@ The button never changes the state directly.
 ### useState vs useReducer
 
 | `useState`                     | `useReducer`                 |
-| ------------------------------ | ---------------------------- |
+| --------------------------------- | ------------------------------- |
 | Simple state                   | Complex state                |
 | Few updates                    | Many update types            |
 | Direct setter (`setState`)     | `dispatch(action)`           |
@@ -1554,7 +1623,7 @@ The button never changes the state directly.
 
 Page A
 
-```js
+```
 function Users() {
   const [users, setUsers] = useState([]);
 
@@ -1568,7 +1637,7 @@ function Users() {
 
 Page B
 
-```js
+```
 function Products() {
   const [products, setProducts] = useState([]);
 
@@ -1600,7 +1669,7 @@ A custom hook is a JavaScript (or TypeScript) function that starts with use and 
 
 ### It starts with use
 
-```js
+```
 useFetch();
 
 useDebounce();
@@ -1614,7 +1683,7 @@ useTheme();
 
 Inside a custom hook:
 
-```js
+```
 function useFetch() {
   useState();
 

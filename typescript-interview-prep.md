@@ -4,7 +4,7 @@ TypeScript is a statically typed superset of JavaScript developed by Microsoft t
 
 Let's break that down.
 
-```text
+```
 1. Superset of JavaScript
 
 A superset means:
@@ -68,7 +68,7 @@ The type information disappears.
 
 ### Compilation Flow
 
-```text
+```
 TypeScript (.ts)
 
 ↓
@@ -83,6 +83,23 @@ JavaScript (.js)
 
 Node.js / Browser
 ```
+
+### Does TypeScript provide any runtime type checking?
+
+No. TypeScript types are completely **erased** during compilation to JavaScript — there is zero runtime overhead and zero runtime type safety from TypeScript alone.
+
+```ts
+interface User { name: string; age: number; }
+
+function greet(user: User) {
+  console.log(user.name);
+}
+
+const data: User = JSON.parse(someApiResponse); // TS trusts you completely here
+greet(data); // if the actual JSON doesn't have `name`, this crashes at RUNTIME
+```
+
+TypeScript protects you from mistakes *you* make while writing code — it does not protect you from untrusted data crossing a trust boundary (API responses, `JSON.parse`, user input). For that, you need a runtime validator like **Zod** or **Joi** alongside the TS type, so the compile-time type and the actual runtime check stay in sync.
 
 ## Why was TypeScript created?
 
@@ -118,9 +135,10 @@ Rename Symbol
 Refactoring
 
 3. Better Readability
-   ```js
-   function calculateSalary(salary: number, bonus: number): number
-   ```
+
+```
+function calculateSalary(salary: number, bonus: number): number
+```
 
 Anyone reading the code immediately knows:
 
@@ -134,8 +152,7 @@ Large teams can understand each other's code more easily.
 
 Renaming a property across thousands of files becomes much safer because the compiler can detect broken references.
 
-**Disadvantages**
-Extra compilation step
+**Disadvantages** Extra compilation step
 Slight learning curve
 More code to write (types)
 Build process becomes more complex
@@ -144,7 +161,7 @@ Build process becomes more complex
 
 Type Inference means TypeScript automatically determines the type of a variable without you explicitly specifying it.
 
-```text
+```
 Example:
 
 let name = "Harshit";
@@ -188,7 +205,7 @@ Objects
 
 A tuple is a fixed-length array where each position has a predefined type.
 
-```ts
+```
 let user: [number, string];
 
 user = [1, "Harshit"];
@@ -196,7 +213,7 @@ user = [1, "Harshit"];
 
 Correct
 
-```ts
+```
 user = ["Harshit", 1];
 ```
 
@@ -206,7 +223,7 @@ Wrong. Compiler error.
 
 Enums allow us to create a set of named constants.
 
-````ts
+```
 enum Role {
     Admin,
     User,
@@ -219,13 +236,60 @@ Usage
 const role = Role.Admin;
 ```
 
+### Why do many teams avoid Enums in favor of union literal types?
+
+```ts
+enum Role { Admin, User, Manager }
+```
+
+vs.
+
+```ts
+type Role = "Admin" | "User" | "Manager";
+```
+
+Reasons teams prefer union literals:
+- Enums generate actual runtime JS code (an object), while union literals are purely compile-time and erased — zero runtime cost.
+- Numeric enums allow unsafe implicit number assignment (`Role.Admin` is just `0` under the hood, and any `number` can sometimes sneak through where an enum is expected).
+- Union literals work more naturally with discriminated unions and are simpler to reason about.
+
+Enums are still reasonable when you specifically need a runtime-accessible mapping/object, but for most "one of these fixed string values" cases, union literal types are the more common modern default.
+
 ## What is Literal Types?
 
 ```ts
 let status: "Pending" | "Completed" | "Cancelled";
-````
+```
 
 Now only these values are allowed.
+
+### What is a Discriminated Union?
+
+A discriminated union is a union of object types that share a common literal property (the "discriminant" or "tag"), which TypeScript uses to narrow the type automatically.
+
+```ts
+interface SuccessResponse {
+  status: "success";
+  data: string;
+}
+
+interface ErrorResponse {
+  status: "error";
+  message: string;
+}
+
+type ApiResponse = SuccessResponse | ErrorResponse;
+
+function handleResponse(response: ApiResponse) {
+  if (response.status === "success") {
+    console.log(response.data);    // TS knows this is SuccessResponse here
+  } else {
+    console.log(response.message); // TS knows this is ErrorResponse here
+  }
+}
+```
+
+Checking `response.status` narrows the type inside each branch — TypeScript won't let you access `.data` in the `else` branch, because it knows that branch can only be `ErrorResponse`. This pattern is extremely common for API response types, Redux-style actions, and state machines, and it's a very likely follow-up after any `interface`/`type` question.
 
 ## What are the special types?
 
@@ -238,7 +302,7 @@ Now only these values are allowed.
 
 any disables TypeScript's type checking.
 
-```ts
+```
 let value: any = 10;
 
 value = "Harshit";
@@ -254,7 +318,7 @@ value = [];
 
 unknown can store any value, but you cannot use it directly until you check its type.
 
-```text
+```
 let value: unknown = "Harshit";
 console.log(value.length);
 
@@ -263,7 +327,7 @@ console.log(value.length);
 Because TypeScript doesn't know if it's actually a string.
 ```
 
-```text
+```
 Correct way:
 
 if (typeof value === "string") {
@@ -282,7 +346,7 @@ It keeps type safety.
 #### Difference between any and unknown
 
 | any                       | unknown                    |
-| ------------------------- | -------------------------- |
+| ------------------------- | --------------------------- |
 | Disables type checking    | Keeps type safety          |
 | Can perform any operation | Must narrow the type first |
 | Unsafe                    | Safe                       |
@@ -291,7 +355,7 @@ It keeps type safety.
 
 This function doesn't return anything.
 
-```ts
+```
 function greet(): void {
   console.log("Hello");
 }
@@ -305,11 +369,32 @@ It either:
 throws an error
 or runs forever
 
-```ts
+```
 function throwError(): never {
   throw new Error("Something went wrong");
 }
 ```
+
+### When would a function's return type actually be `never`, in practice?
+
+Two real cases: a function that always throws, and a function with an infinite loop that never returns control. It's also used by TypeScript itself for exhaustiveness checking:
+
+```ts
+type Status = "pending" | "completed" | "cancelled";
+
+function handleStatus(status: Status) {
+  switch (status) {
+    case "pending": return "Waiting";
+    case "completed": return "Done";
+    case "cancelled": return "Cancelled";
+    default:
+      const exhaustiveCheck: never = status; // errors if a case is missed
+      return exhaustiveCheck;
+  }
+}
+```
+
+If someone adds a new value to the `Status` union later and forgets to handle it in the switch, this pattern causes a compile error at the `default` branch — `never` is used here as a safety net for exhaustive matching.
 
 ### What is an Interface?
 
@@ -319,7 +404,7 @@ Think of it as a contract.
 
 If an object claims to follow an interface, it must contain all the required properties with the correct types.
 
-```ts
+```
 interface User {
   readonly id: number; // readonly property
   name: string;
@@ -336,11 +421,11 @@ const user: User = {
 };
 ```
 
-### What is Type Aliases?
+## What is Type Aliases?
 
 A type alias lets you create a new name (alias) for any type.
 
-```ts
+```
 type User = {
   id: number;
   name: string;
@@ -360,11 +445,11 @@ That's why interviewers almost always ask:
 
 **What's the difference between interface and type?**
 
-_Differences_
+*Differences*
 
 1. Interface can be extended
 
-```ts
+```
 interface Person {
   name: string;
 }
@@ -376,7 +461,7 @@ interface Employee extends Person {
 
 Type also supports inheritance using intersections:
 
-```ts
+```
 type Person = {
   name: string;
 };
@@ -390,7 +475,7 @@ Both achieve similar results.
 
 2. Type can represent more than objects
 
-```ts
+```
 //Interface
 interface User {
   id: number;
@@ -424,7 +509,7 @@ A type can represent almost anything.
 ```
 
 3. Declaration Merging
-   This is the biggest difference.
+This is the biggest difference.
 
 Interfaces support declaration merging.
 
@@ -478,19 +563,48 @@ Interfaces cannot.
 
 Type aliases naturally support intersections.
 
-```ts
+```
 type Admin = User & Permissions;
+```
+
+### What is Structural Typing?
+
+TypeScript uses **structural typing** — it checks compatibility based on the *shape* of a value, not its declared name. This is different from nominal typing (Java/C#), where a type is only compatible if it's explicitly declared as implementing/extending it.
+
+```ts
+interface Point { x: number; y: number; }
+
+function printPoint(p: Point) {
+  console.log(`${p.x}, ${p.y}`);
+}
+
+const obj = { x: 1, y: 2, z: 3 }; // never declared as a Point
+printPoint(obj); // works — structurally compatible (has x and y as numbers)
+```
+
+If two types have the same shape, they're interchangeable — regardless of name, regardless of whether one was ever explicitly declared to satisfy the other. This is sometimes called "duck typing at compile time," and it's a common thing interviewers probe for specifically, since developers coming from Java/C# often assume TS requires an explicit `implements` relationship. It doesn't.
+
+```ts
+type Circle = { radius: number; area(): number; };
+interface Shape { area(): number; }
+
+const circle: Circle = { radius: 5, area() { return Math.PI * this.radius ** 2; } };
+
+function printArea(shape: Shape) {
+  console.log(shape.area());
+}
+printArea(circle); // compiles fine — Circle structurally satisfies Shape
 ```
 
 ### Which should you use?
 
-_Use Interface when_:
+*Use Interface when*:
 Modeling objects
 Creating contracts
 Designing APIs
 OOP-style applications
 
-_Use Type when_:
+*Use Type when*:
 Union types
 Intersection types
 Function types
@@ -500,7 +614,49 @@ Utility types
 
 ## What are Generics?
 
-Generics allow us to write reusable functions, classes, or interfaces that work with different data types while still maintaining type safety.
+Generics let you write a function, class, or interface once that works across multiple types while preserving type safety — instead of using `any` (which discards type checking entirely) or duplicating code per type.
+
+```ts
+function getFirst<T>(arr: T[]): T {
+  return arr[0];
+}
+
+const firstNum = getFirst([1, 2, 3]);       // T inferred as number
+const firstStr = getFirst(['a', 'b', 'c']); // T inferred as string
+```
+
+### What is a Generic Constraint?
+
+`extends` restricts what types `T` can be, when the function needs to rely on some property of `T`.
+
+```ts
+function getLength<T extends { length: number }>(item: T): number {
+  return item.length;
+}
+getLength('hello');  // works — strings have .length
+getLength([1, 2, 3]); // works — arrays have .length
+getLength(42);        // ERROR — number has no .length, caught at compile time
+```
+
+### What is a Generic Interface, and where would you use one?
+
+```ts
+interface Repository<T> {
+  findById(id: string): Promise<T | null>;
+  save(item: T): Promise<T>;
+  delete(id: string): Promise<void>;
+}
+
+interface User { id: string; name: string; }
+
+class UserRepository implements Repository<User> {
+  async findById(id: string): Promise<User | null> { /* ... */ return null; }
+  async save(item: User): Promise<User> { /* ... */ return item; }
+  async delete(id: string): Promise<void> { /* ... */ }
+}
+```
+
+One generic `Repository<T>` interface instead of writing a near-identical interface per entity — a realistic pattern for NestJS/Prisma-style backend work.
 
 ## What are Utility Types?
 
@@ -512,7 +668,7 @@ Instead of writing new interfaces again and again, we can transform existing one
 
 Suppose we have:
 
-```ts
+```
 interface User {
   id: number;
   name: string;
@@ -525,17 +681,17 @@ We'll use this interface for all examples.
 
 ---
 
-# 1. Partial<T> ⭐⭐⭐⭐⭐
+# 1. Partial ⭐⭐⭐⭐⭐
 
 Makes **all properties optional**.
 
-```ts
+```
 type PartialUser = Partial<User>;
 ```
 
 Now it becomes:
 
-```ts
+```
 {
   id?: number;
   name?: string;
@@ -546,7 +702,7 @@ Now it becomes:
 
 Example:
 
-```ts
+```
 const updateUser: Partial<User> = {
   name: "Harshit",
 };
@@ -560,7 +716,7 @@ Only updating the name.
 
 **PATCH API**
 
-```http
+```
 PATCH /users/1
 ```
 
@@ -568,13 +724,13 @@ The client only sends the fields that need updating.
 
 ---
 
-# 2. Required<T> ⭐⭐⭐⭐☆
+# 2. Required ⭐⭐⭐⭐☆
 
 Makes **all properties required**.
 
 Suppose
 
-```ts
+```
 interface User {
   id: number;
   name?: string;
@@ -583,13 +739,13 @@ interface User {
 
 Now
 
-```ts
+```
 type RequiredUser = Required<User>;
 ```
 
 becomes
 
-```ts
+```
 {
   id: number;
   name: string;
@@ -600,17 +756,17 @@ Everything is mandatory.
 
 ---
 
-# 3. Readonly<T> ⭐⭐⭐⭐☆
+# 3. Readonly ⭐⭐⭐⭐☆
 
 Makes every property read-only.
 
-```ts
+```
 type ReadonlyUser = Readonly<User>;
 ```
 
 Now
 
-```ts
+```
 user.name = "Rahul";
 ```
 
@@ -630,13 +786,13 @@ Pick only the properties you need.
 
 Example:
 
-```ts
+```
 type UserSummary = Pick<User, "id" | "name">;
 ```
 
 Result:
 
-```ts
+```
 {
   id: number;
   name: string;
@@ -665,13 +821,13 @@ Opposite of Pick.
 
 Remove unwanted properties.
 
-```ts
+```
 type UserWithoutAge = Omit<User, "age">;
 ```
 
 Result:
 
-```ts
+```
 {
   id: number;
   name: string;
@@ -683,7 +839,7 @@ Result:
 
 Never send passwords.
 
-```ts
+```
 interface User {
   id: number;
   name: string;
@@ -691,7 +847,7 @@ interface User {
 }
 ```
 
-```ts
+```
 type SafeUser = Omit<User, "password">;
 ```
 
@@ -703,13 +859,13 @@ Creates an object with predefined key and value types.
 
 Example:
 
-```ts
+```
 type Scores = Record<string, number>;
 ```
 
 Now:
 
-```ts
+```
 const scores: Scores = {
   Harshit: 95,
   Rahul: 88,
@@ -724,7 +880,7 @@ Values → `number`
 
 Caching:
 
-```ts
+```
 Record<string, User>;
 ```
 
@@ -734,19 +890,19 @@ Record<string, User>;
 
 Removes specific types from a union.
 
-```ts
+```
 type Status = "Pending" | "Completed" | "Cancelled";
 ```
 
 Now:
 
-```ts
+```
 type ActiveStatus = Exclude<Status, "Cancelled">;
 ```
 
 Result:
 
-```ts
+```
 "Pending" | "Completed";
 ```
 
@@ -758,17 +914,17 @@ Opposite of Exclude.
 
 Keeps only matching types.
 
-```ts
+```
 type Status = "Pending" | "Completed" | "Cancelled";
 ```
 
-```ts
+```
 type Finished = Extract<Status, "Completed" | "Cancelled">;
 ```
 
 Result:
 
-```ts
+```
 "Completed" | "Cancelled";
 ```
 
@@ -777,7 +933,7 @@ Result:
 # Summary
 
 | Utility Type | Purpose                           |
-| ------------ | --------------------------------- |
+| ------------ | ---------------------------------- |
 | Partial      | Makes all properties optional     |
 | Required     | Makes all properties required     |
 | Readonly     | Makes properties read-only        |
@@ -799,7 +955,7 @@ A Type Guard is a way to check the type of a variable at runtime so that TypeScr
 
 Used for primitive types.
 
-```ts
+```
 let value: string | number;
 
 if (typeof value === "string") {
@@ -811,7 +967,7 @@ if (typeof value === "string") {
 
 Used for classes.
 
-```ts
+```
 class User {}
 
 const user = new User();
@@ -829,7 +985,7 @@ Checks whether a property exists.
 
 Example
 
-```ts
+```
 interface User {
   name: string;
 }
@@ -851,7 +1007,7 @@ A class is a blueprint for creating objects. It defines the properties (data) an
 
 Example:
 
-```ts
+```
 class User {
   id: number;
   name: string;
@@ -873,7 +1029,7 @@ user.greet();
 
 Output:
 
-```text
+```
 Hello Harshit
 ```
 
@@ -883,7 +1039,7 @@ Hello Harshit
 
 A constructor is a special method that runs automatically when an object is created.
 
-```ts
+```
 constructor(id: number, name: string) {
     this.id = id;
     this.name = name;
@@ -892,7 +1048,7 @@ constructor(id: number, name: string) {
 
 When you do:
 
-```ts
+```
 new User(1, "Harshit");
 ```
 
@@ -908,7 +1064,7 @@ Default access modifier.
 
 Accessible from anywhere.
 
-```ts
+```
 class User {
   public name: string;
 
@@ -934,7 +1090,7 @@ Accessible:
 
 Accessible **only inside the class**.
 
-```ts
+```
 class User {
   private password: string;
 
@@ -946,7 +1102,7 @@ class User {
 
 Trying to access it outside:
 
-```ts
+```
 console.log(user.password);
 ```
 
@@ -973,7 +1129,7 @@ Accessible:
 
 Example:
 
-```ts
+```
 class Animal {
   protected age: number = 5;
 }
@@ -987,7 +1143,7 @@ class Dog extends Animal {
 
 Outside:
 
-```ts
+```
 dog.age;
 ```
 
@@ -999,7 +1155,7 @@ Compile Error.
 
 A readonly property can only be assigned once.
 
-```ts
+```
 class User {
   readonly id: number;
 
@@ -1011,7 +1167,7 @@ class User {
 
 Later:
 
-```ts
+```
 user.id = 10;
 ```
 
@@ -1033,7 +1189,7 @@ A static member belongs to the class itself, not to its objects.
 
 Example:
 
-```ts
+```
 class MathUtil {
   static PI = 3.14;
 }
@@ -1041,7 +1197,7 @@ class MathUtil {
 
 Usage:
 
-```ts
+```
 console.log(MathUtil.PI);
 ```
 
@@ -1059,7 +1215,7 @@ No object creation required.
 
 A child class inherits properties and methods from a parent class.
 
-```ts
+```
 class Person {
   name: string;
 
@@ -1095,7 +1251,7 @@ An abstract class cannot be instantiated directly.
 
 Example:
 
-```ts
+```
 abstract class Animal {
   abstract sound(): void;
 }
@@ -1103,7 +1259,7 @@ abstract class Animal {
 
 Wrong:
 
-```ts
+```
 new Animal();
 ```
 
@@ -1111,7 +1267,7 @@ Compile Error.
 
 Correct:
 
-```ts
+```
 class Dog extends Animal {
   sound() {
     console.log("Bark");
@@ -1126,7 +1282,7 @@ The child class **must implement** all abstract methods.
 # Interface vs Abstract Class
 
 | Interface                    | Abstract Class                                   |
-| ---------------------------- | ------------------------------------------------ |
+| ----------------------------- | -------------------------------------------------- |
 | Only defines a contract      | Can define a contract and provide implementation |
 | Cannot have constructor      | Can have constructor                             |
 | Cannot maintain state        | Can have properties/state                        |
