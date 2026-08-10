@@ -2,7 +2,6 @@
 
 > **Goal:** Understand the complete journey of code from a developer's
 > laptop to a live application on AWS EC2.
-
 ---
 
 # 1. What is CI/CD?
@@ -119,7 +118,7 @@ Example:
 
 # 3. Complete CI/CD Flow
 
-```text
+```
 Developer
     │
 git add
@@ -169,7 +168,7 @@ Application Live
 
 Developer writes code on a feature branch.
 
-```bash
+```
 git add .
 git commit -m "Add authentication"
 git push origin feature/auth
@@ -205,7 +204,7 @@ code and reads the `Jenkinsfile`.
 
 ## Step 4 -- Install Dependencies
 
-```bash
+```
 npm ci
 ```
 
@@ -215,7 +214,7 @@ Uses `package-lock.json` to install exact dependency versions.
 
 ## Step 5 -- Lint
 
-```bash
+```
 npm run lint
 ```
 
@@ -227,7 +226,7 @@ Pipeline stops if lint fails.
 
 ## Step 6 -- Tests
 
-```bash
+```
 npm test
 ```
 
@@ -235,11 +234,37 @@ Runs automated tests.
 
 Pipeline stops if tests fail.
 
+### What are the layers of a testing pyramid, and why does the shape matter?
+
+```
+        /\
+       /E2E\        <- few, slow, expensive, high confidence
+      /------\
+     /Integr. \     <- moderate number, test interactions between components
+    /----------\
+   /   Unit     \   <- many, fast, cheap, test individual functions/modules
+  /--------------\
+```
+
+**Unit tests** — test individual functions/modules in isolation (mocking dependencies). Fast, cheap to run in every CI build, should form the bulk of your suite.
+
+**Integration tests** — test how multiple components work together (e.g., a service layer actually hitting a test database). Slower than unit tests, fewer of them.
+
+**End-to-end (E2E) tests** — test a full user flow through the real (or near-real) system. Slowest, most brittle, most expensive to maintain — used sparingly for critical user journeys, not for exhaustive coverage.
+
+### Why does the pipeline stop on lint/test failure instead of continuing to deploy?
+
+This is the entire point of CI — catching problems before they reach production. If a broken build were allowed to continue to deployment, CI would just be a reporting tool rather than a gate, and bugs would reach users that automated checks had already caught.
+
+### What is Test Coverage, and is 100% coverage a meaningful goal?
+
+Test coverage measures what percentage of your code is executed by your test suite. It's a useful signal for finding completely untested code paths, but 100% coverage doesn't mean bug-free — a test can execute a line of code without actually asserting anything meaningful about its behavior. Most teams target a reasonable threshold (e.g., 70-80%) on critical paths, rather than treating the coverage number itself as the goal.
+
 ---
 
 ## Step 7 -- Build
 
-```bash
+```
 npm run build
 ```
 
@@ -249,7 +274,7 @@ Compiles TypeScript and creates production-ready files.
 
 ## Step 8 -- Docker Build
 
-```bash
+```
 docker build -t backend:1.0 .
 ```
 
@@ -265,7 +290,7 @@ to run on any server.
 
 ## Step 9 -- Push Image to AWS ECR
 
-```bash
+```
 docker push <image>
 ```
 
@@ -280,7 +305,7 @@ Jenkins connects to EC2 through SSH.
 
 Typical commands:
 
-```bash
+```
 docker pull <image>
 docker stop backend || true
 docker rm backend || true
@@ -289,9 +314,49 @@ docker run -d --name backend ...
 
 Or
 
-```bash
+```
 docker compose pull
 docker compose up -d
+```
+
+### What is a Blue-Green Deployment?
+
+Two identical production environments exist ("blue" = currently live, "green" = new version). The new version is deployed to green and fully tested while blue continues serving all live traffic. Once verified, traffic is switched to green all at once (usually via a load balancer or DNS change). If something's wrong, switching back to blue is immediate.
+
+```
+Before: Load Balancer -> Blue (v1, live)
+                          Green (v2, idle, being tested)
+
+After:  Load Balancer -> Green (v2, live)
+                          Blue (v1, idle, kept as instant rollback option)
+```
+
+**Trade-off:** requires running two full production environments simultaneously (cost), but gives instant rollback and zero-downtime cutover.
+
+### What is a Canary Deployment?
+
+Instead of switching all traffic at once, the new version is rolled out to a small percentage of traffic first (e.g., 5%), monitored for errors/performance regressions, and gradually increased to 100% if it looks healthy. If problems appear early, only a small fraction of users were affected, and the rollout can be halted.
+
+```
+v2 deployed to 5% of traffic -> monitor error rate/latency
+  -> looks good -> increase to 25% -> 50% -> 100%
+  -> looks bad  -> roll back immediately, only 5% of users were impacted
+```
+
+### Blue-Green vs Canary — when would you choose which?
+
+**Blue-Green** — when you want a clean, instant, all-or-nothing cutover with guaranteed instant rollback, and can afford to run duplicate infrastructure.
+
+**Canary** — when you want to catch problems with real production traffic before fully committing, limiting blast radius progressively rather than switching everything at once. Generally preferred for higher-risk changes where you want real-world validation before full exposure.
+
+### What is a Rollback, and how should it fit into the pipeline?
+
+A rollback reverts a deployment to the previous known-good version, typically by redeploying the previous Docker image tag rather than trying to "undo" code changes. A good pipeline makes rollback fast and low-risk — this is why immutable versioned Docker images (not just overwriting `latest`) matter: you can always redeploy exactly what was running before.
+
+```
+docker pull backend:1.4   # previous known-good version
+docker stop backend && docker rm backend
+docker run -d --name backend backend:1.4
 ```
 
 ---
@@ -331,7 +396,27 @@ Multiple agents allow multiple builds to run simultaneously.
 
 ---
 
-# 7. Frequently Asked Interview Questions
+# 7. Infrastructure as Code
+
+### What is Infrastructure as Code (IaC), and why does it matter?
+
+IaC means defining infrastructure (servers, networking, databases) in version-controlled configuration files (e.g., Terraform, AWS CloudFormation) instead of manually clicking through a cloud console. This makes infrastructure changes reviewable (via pull requests, like code), reproducible (spin up an identical environment from the same config), and auditable (git history shows exactly what changed and when).
+
+```
+# Example: Terraform defining an EC2 instance
+resource "aws_instance" "app_server" {
+  ami           = "ami-0abcdef1234567890"
+  instance_type = "t3.medium"
+}
+```
+
+### Why is "manually SSH-ing into a server to fix something" considered a bad practice in a mature CI/CD setup?
+
+Manual changes create **configuration drift** — the running server no longer matches what's defined in version control, so nobody can reliably reproduce that exact environment again, and the next automated deployment might silently overwrite (or conflict with) the manual fix. The goal of a mature pipeline is that servers are treated as disposable/replaceable ("cattle, not pets") — if something's wrong, you fix the deployment config and redeploy, rather than patching the live server by hand.
+
+---
+
+# 8. Frequently Asked Interview Questions
 
 ### What is CI/CD?
 
@@ -372,208 +457,3 @@ Jenkins checks out the latest code, installs dependencies, runs lint,
 tests and build. It then builds a Docker image, pushes it to AWS ECR,
 connects to EC2, pulls the latest image, stops the old container and
 starts a new one.
-
-### What are the different types of deployments in CI/CD?
-
-1. Recreate Deployment (Big Bang Deployment)
-
-The old version is completely stopped before the new version is deployed.
-
-```text
-Old Version
-    ↓ Stop
-No Application Running
-    ↓
-New Version Starts
-```
-
-**Pros**
-Very simple to implement.
-No need to maintain multiple versions.
-
-**Cons**
-Causes downtime.
-If deployment fails, users cannot access the application until rollback.
-
-**Example**: Deploying a small internal HR application during off-hours.
-
-2. Rolling Deployment
-
-Instances are updated one at a time (or in small batches) while the rest continue serving traffic.
-
-```text
-Before:
-V1 V1 V1 V1
-
-Step 1:
-V2 V1 V1 V1
-
-Step 2:
-V2 V2 V1 V1
-
-Step 3:
-V2 V2 V2 V1
-
-Final:
-V2 V2 V2 V2
-```
-
-**Pros**
-No downtime.
-Lower infrastructure cost.
-Easy to automate in Kubernetes.
-
-**Cons**
-Both versions run simultaneously.
-Database changes must be backward compatible.
-Rollback takes time.
-
-**Example**: Updating a Node.js API running on four EC2 instances.
-
-3. Blue-Green Deployment
-
-Maintain two identical environments:
-
-Blue = Current Production
-Green = New Version
-
-```text
-Users
-|
-Load Balancer
-|
-Blue (Live)
-
-Deploy to Green
-Test Green
-
-Switch Traffic
-
-Users
-|
-Load Balancer
-|
-Green (Live)
-```
-
-**Pros**
-Near-zero downtime.
-Very fast rollback by switching traffic back.
-Safer deployments.
-**Cons**
-Requires double infrastructure.
-Higher cost.
-
-**Example**: Banking or e-commerce applications where downtime is unacceptable.
-
-4. Canary Deployment
-
-Release the new version to a small percentage of users first.
-
-```text
-100% Users
-
-90% → V1
-10% → V2
-
-↓
-
-50% → V1
-50% → V2
-
-↓
-
-100% → V2
-```
-
-**Pros**
-Detect bugs early.
-Limits impact if something goes wrong.
-Great for gradual releases.
-**Cons**
-More complex routing.
-Requires monitoring.
-
-**Example**: Releasing a new checkout flow to only 5% of customers.
-
-5. A/B Testing
-
-Different users receive different versions to compare behaviour.
-
-```text
-Users
-
-50% → Version A
-50% → Version B
-
-Compare:
-
-- Click rate
-- Sales
-- Time spent
-```
-
-**Pros**
-Helps optimise user experience.
-Data-driven decisions.
-**Cons**
-More application logic.
-Mainly used for product experiments rather than infrastructure deployment.
-
-**Example**: Testing two different homepage designs.
-
-6. Shadow Deployment (Mirrored Deployment)
-
-Production traffic is copied to the new version, but responses are ignored.
-
-```text
-Users
-|
-Production V1
-|
-+-------> V2 (Shadow)
-Users only receive V1 responses.
-```
-
-The new version processes real traffic without affecting users.
-
-**Pros**
-Tests the new version under real production load.
-No customer impact.
-**Cons**
-Requires additional infrastructure.
-Doesn't test actual user-visible behaviour.
-
-**Example**: Validating that a rewritten recommendation engine performs correctly before making it live.
-
-7. Feature Flag (Feature Toggle)
-
-Deploy the code but keep new features disabled until they're ready.
-
-```text
-Deploy Version 2
-
-Feature X = OFF
-
-↓
-
-Enable for Internal Team
-
-↓
-
-Enable for 5%
-
-↓
-
-Enable for Everyone
-```
-
-**Pros**
-Decouples deployment from release.
-Instant rollback by disabling the feature.
-Great for continuous delivery.
-**Cons**
-Adds code complexity.
-Flags need to be managed and cleaned up.
-
-**Example**: Shipping a payment feature that's hidden until business approval.

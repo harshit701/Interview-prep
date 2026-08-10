@@ -8,7 +8,7 @@ Before understanding microservices, you need to know what a monolith is.
 
 Imagine we're building an app called **Iqubec**, where everything lives inside one application:
 
-```text
+```
 Iqubec
 ├── Authentication
 ├── Users
@@ -48,22 +48,22 @@ Instead of one application (Iqubec), we build separate services:
 - Notification Service
 - Payment Service
 
-```text
-                        Client
-                          │
-                     API Gateway
-          ┌──────┬────────┬────────┐
-        Auth   Users  Transactions  Budget
-                            │
-                       PostgreSQL
+```
+                 Client
+                   │
+              API Gateway
+   ┌──────┬────────┬────────┐
+ Auth   Users  Transactions  Budget
+                     │
+                PostgreSQL
 
-        Notification
-             │
-           Redis
+ Notification
+      │
+    Redis
 
-        Payment
-             │
-       Payment Gateway
+ Payment
+      │
+Payment Gateway
 ```
 
 Each service:
@@ -72,6 +72,27 @@ Each service:
 - Can be deployed independently
 - Can have its own database (often)
 - Can scale independently
+
+### Should each microservice have its own database?
+
+Generally yes — this is the "Database per Service" pattern, and it's one of the defining traits that separates real microservices from a monolith split into multiple deployables that still share one database.
+
+**Why it matters:** if two services share a database, a schema change in one can silently break the other, and services become coupled at the data layer even though they're deployed independently — undermining the whole point of splitting them apart.
+
+**The cost:** you lose the ability to do a simple SQL `JOIN` across data owned by different services. Combining data from multiple services now requires either an API call between them, or a pattern like API Composition or CQRS (see below).
+
+### What is the API Composition pattern?
+
+When a client needs data that spans multiple services (e.g., an order summary combining Order Service + User Service + Payment Service data), a composing service (often the API Gateway, or a dedicated backend-for-frontend layer) calls each relevant service and merges the results before returning to the client.
+
+```
+Client -> Composer -> Order Service
+                    -> User Service
+                    -> Payment Service
+        <- merged response
+```
+
+**Downside:** this can be slow if you have many services to call, and it's still doing the "join" at the application layer rather than the database layer — for very read-heavy composed views, some teams instead maintain a separate denormalized read-model (CQRS) that's kept in sync via events.
 
 ### Advantages of Microservices
 
@@ -90,13 +111,23 @@ Each service:
 - ❌ More monitoring
 - ❌ Data consistency challenges
 
+## Service Discovery
+
+### What is Service Discovery, and why do microservices need it?
+
+In a monolith, components call each other via direct in-process function calls. In microservices, Service A needs to know Service B's network location (IP/port) to call it — but in a dynamically scaled environment (containers being created/destroyed, instances scaling up/down), IPs change constantly. Service Discovery solves this by maintaining a live registry of which service instances exist and where they currently are.
+
+**Client-side discovery:** the calling service queries a registry (e.g., Consul, Eureka) directly to find an available instance, then calls it.
+
+**Server-side discovery:** the calling service calls a fixed address (e.g., a load balancer or the API Gateway), which itself looks up the registry and routes the request — this is more common in Kubernetes-based deployments, where the built-in service networking layer handles this transparently.
+
 ## Service-to-Service Communication
 
 ### How should the Transaction Service tell the Notification Service to send a notification?
 
 #### 1. Synchronous Communication (HTTP)
 
-```text
+```
 User
  │
  ▼
@@ -123,7 +154,7 @@ Transaction Service finishes
 
 Instead of calling the Notification Service directly:
 
-```text
+```
 User
  │
  ▼
@@ -183,6 +214,33 @@ Examples: sending emails, push notifications, SMS, analytics, audit logs, order 
 
 I use HTTP for synchronous communication when I need an immediate response or the result is required before continuing the request. I use Kafka or RabbitMQ for asynchronous communication when tasks can be processed later, such as sending notifications, updating analytics, or processing background jobs. This improves scalability, fault tolerance, and loose coupling between services.
 
+## Distributed Transactions & the Saga Pattern
+
+### How do you handle a transaction that spans multiple services (each with its own database)?
+
+Since each service has its own database, you can't use a single ACID transaction across all of them the way you could in a monolith with one shared database. The common solution is the **Saga pattern** — a sequence of local transactions, each in a different service, coordinated through events, with explicit **compensating actions** to undo previous steps if a later step fails.
+
+```
+Example: placing an order that involves Order Service, Payment Service, Inventory Service
+
+1. Order Service creates order (local transaction) -> publishes "OrderCreated"
+2. Payment Service charges the card (local transaction) -> publishes "PaymentSucceeded"
+3. Inventory Service reserves stock (local transaction) -> publishes "StockReserved"
+
+If step 3 fails (out of stock):
+  -> Inventory Service publishes "StockReservationFailed"
+  -> Payment Service consumes this, REFUNDS the charge (compensating action)
+  -> Order Service consumes this, marks the order as CANCELLED (compensating action)
+```
+
+Each service only ever manages its own local transaction; correctness across the whole flow comes from every step having a corresponding compensating action if something downstream fails.
+
+### Choreography-based Saga vs Orchestration-based Saga
+
+**Choreography** — no central coordinator; each service listens for events and decides what to do next, publishing its own events in response (the example above). Simple for a small number of steps, but can become hard to trace/debug as the number of services involved grows — there's no single place that shows the whole flow.
+
+**Orchestration** — a central orchestrator service explicitly tells each participating service what to do, step by step, and handles compensating actions if a step fails. Easier to understand and debug (the whole flow lives in one place), but introduces a coordinating component that itself needs to be reliable.
+
 ## Architecture Components
 
 ### What is an API Gateway?
@@ -198,3 +256,25 @@ An event is something that has happened in the system.
 ### What is Event-Driven Architecture (EDA)?
 
 Event-Driven Architecture is an architectural pattern where services communicate by publishing and consuming events through a message broker like Kafka or RabbitMQ. It enables loose coupling, scalability, and asynchronous processing.
+
+## Observability in Microservices
+
+### Why is distributed tracing necessary in a microservices architecture?
+
+In a monolith, a stack trace shows you the full call path for a single request. In microservices, a single user-facing request might touch 5+ services — without a way to correlate logs across all of them, debugging "why was this request slow" or "where did this error actually originate" becomes extremely difficult.
+
+**Distributed tracing** solves this by attaching a unique **trace ID** to a request at the entry point (API Gateway), and propagating it through every downstream service call (usually via an HTTP header). Each service logs using that same trace ID, and tools like Jaeger or Zipkin can then reconstruct the full request path across all services, showing exactly how much time was spent in each hop.
+
+```
+Request -> API Gateway (trace-id: abc123)
+              │
+              ▼
+         Order Service (trace-id: abc123) -- 50ms
+              │
+              ▼
+         Payment Service (trace-id: abc123) -- 200ms  <- bottleneck visible here
+```
+
+### What is a Service Mesh?
+
+A service mesh (e.g., Istio, Linkerd) is an infrastructure layer that handles service-to-service communication concerns — retries, timeouts, circuit breaking, mutual TLS, load balancing, and observability — outside of the application code, typically via a sidecar proxy deployed alongside each service instance. This lets teams add these cross-cutting concerns uniformly across all services without every service individually implementing its own retry/circuit-breaker logic.

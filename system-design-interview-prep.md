@@ -13,9 +13,7 @@ Don't start drawing the architecture immediately.
 #### What is the first thing you should clarify with the interviewer?
 
 Most candidates make this mistake:
-
-> **Interviewer:** "Design WhatsApp."
-> **Candidate:** "I'll use Redis, Kafka, Kubernetes..." ❌
+> **Interviewer:** "Design WhatsApp." **Candidate:** "I'll use Redis, Kafka, Kubernetes..." ❌
 
 That's not how system design interviews work.
 
@@ -34,10 +32,7 @@ Instead of assuming what "WhatsApp" means, ask what features should be designed.
 - Read receipts
 
 The interviewer usually expects you to narrow the scope. For example:
-
-> **Interviewer:** "Design WhatsApp."
-> **You:** "Before I start, I'd like to clarify the requirements. Should we focus only on one-to-one messaging, or should we also include group chats, voice calls, and media sharing?"
-> **Interviewer:** "Let's only design one-to-one messaging."
+> **Interviewer:** "Design WhatsApp." **You:** "Before I start, I'd like to clarify the requirements. Should we focus only on one-to-one messaging, or should we also include group chats, voice calls, and media sharing?" **Interviewer:** "Let's only design one-to-one messaging."
 
 You've now reduced the scope.
 
@@ -64,13 +59,11 @@ This framework works for almost every question, whether the interviewer asks you
 **Functional Requirements** answer: *what should the system do?* They describe the features.
 
 Example — for WhatsApp: send messages, receive messages, create groups, upload images, show online status.
-
 > **Simple definition ⭐⭐⭐⭐⭐** — Functional requirements define what the system should do or what features it should provide to users.
 
 **Non-Functional Requirements** answer: *how well should the system perform?* They describe the quality of the system.
 
 Examples: handle 10 million users, response time under 200ms, 99.99% availability, secure, scalable, reliable. These are not features.
-
 > **Simple definition ⭐⭐⭐⭐⭐** — Non-functional requirements define how the system should perform, including performance, scalability, reliability, availability, and security.
 
 ## Scalability
@@ -85,7 +78,7 @@ Scalability is the ability of a system to handle increasing traffic or workload 
 
 Imagine one server with 4 GB RAM and 2 CPUs. When traffic increases, instead of adding another server, you upgrade it to 64 GB RAM and 32 CPUs — the same machine, made more powerful. This is called **Vertical Scaling**.
 
-```text
+```
 Node.js Server
       │
     2 CPU
@@ -97,14 +90,13 @@ Node.js Server
 Still one server.
 ```
 
-*Advantages:* very easy, no application changes.
-*Disadvantages:* very expensive, hardware has limits, single point of failure — if this server dies, users get no application at all.
+*Advantages:* very easy, no application changes. *Disadvantages:* very expensive, hardware has limits, single point of failure — if this server dies, users get no application at all.
 
 **2. Horizontal Scaling (Scale Out)**
 
 Instead of buying a bigger server, add more servers (Server 1, Server 2, Server 3, Server 4) and share the traffic between them.
 
-```text
+```
 Instead of:
 1000 Requests → One Server
 
@@ -118,7 +110,7 @@ Each server handles about 250 requests. Much easier.
 
 Imagine Amazon with 50 million users of traffic — can one server handle this? No. Instead:
 
-```text
+```
 Load Balancer → 100 Servers
 
 If traffic doubles → 200 Servers
@@ -133,6 +125,24 @@ Vertical Scaling increases the capacity of a single server by adding more CPU, R
 #### Your Node.js API currently handles 100 requests/sec. Tomorrow it starts receiving 2,000 requests/sec. What would you do?
 
 First, I would identify the bottleneck by monitoring CPU, memory, database performance, network usage, and response times. If the application server is the bottleneck, I would horizontally scale the Node.js application by running multiple instances behind a load balancer. If the database becomes the bottleneck, I would optimize queries, add indexes, introduce Redis for caching, and, if needed, use read replicas or database sharding. For asynchronous tasks such as sending emails or notifications, I would offload them to a message broker like Kafka or RabbitMQ. Finally, I would continuously monitor the system and scale individual services based on traffic.
+
+## Consistency Models
+
+### What is Strong Consistency vs Eventual Consistency?
+
+**Strong consistency** — after a write completes, every subsequent read (from any node) sees that write immediately. Simpler to reason about, but requires more coordination between nodes, which costs latency and availability during network issues.
+
+**Eventual consistency** — after a write, reads may return stale data for a short period, but the system guarantees all nodes will converge to the same value eventually (once replication catches up). Higher availability and lower latency, at the cost of temporary staleness.
+
+```
+Example: you post something on social media.
+Strong consistency  -> every follower sees it immediately, no matter which server they hit.
+Eventual consistency -> some followers might see it a few seconds later, but everyone converges eventually.
+```
+
+### When would you choose eventual consistency over strong consistency?
+
+For systems where a brief staleness window is acceptable in exchange for availability and performance — social media feeds, view/like counts, product catalogs. For systems where staleness is unacceptable — account balances, inventory counts near zero stock, anything involving money — strong consistency (or careful compensating logic) is worth the cost.
 
 ## Availability & Reliability
 
@@ -157,19 +167,18 @@ First, I would identify the bottleneck by monitoring CPU, memory, database perfo
 For a financial system, the second scenario is generally less damaging than incorrect financial transactions. That's why banks and payment systems prioritize correctness above all else.
 
 **Interview answer:**
-
 > "Ideally, I would design the system to be both highly available and highly reliable. However, if I had to prioritize one for a payment system like UPI, I would prioritize reliability because financial transactions must be processed correctly. Users may tolerate temporary downtime, but they cannot tolerate incorrect or duplicate transactions or loss of money."
 
 **Different systems have different priorities:**
 
-| System | Higher Priority |
-|---|---|
-| Banking / UPI | ✅ Reliability |
-| WhatsApp | Availability |
-| Netflix | Availability |
-| Google Search | Availability |
-| Stock Trading | Reliability |
-| Hospital System | Reliability |
+| System          | Higher Priority |
+| --------------- | --------------- |
+| Banking / UPI   | ✅ Reliability   |
+| WhatsApp        | Availability    |
+| Netflix         | Availability    |
+| Google Search   | Availability    |
+| Stock Trading   | Reliability     |
+| Hospital System | Reliability     |
 
 ## Performance: Latency & Throughput
 
@@ -188,10 +197,12 @@ Throughput is the number of requests or operations a system can process in a giv
 *Example:* if your API can process 500 requests/second, its throughput is 500 requests/sec. If tomorrow it handles 5,000 requests/sec, it has a much higher throughput.
 
 **Restaurant analogy 🍕**
+
 - *Latency:* you order one pizza — how long until you receive it? 15 minutes. That's latency.
 - *Throughput:* how many pizzas can the restaurant make in one hour? 300 pizzas/hour. That's throughput.
 
 **Toll booth analogy**
+
 - *Latency:* one car takes 5 seconds to pass. Latency: 5 seconds.
 - *Throughput:* the toll booth allows 720 cars/hour. Throughput: 720 cars/hour.
 
@@ -244,3 +255,96 @@ A CDN is best for static content that doesn't change very often, such as:
 ### Caching
 
 Caching is a core system-design building block for improving both latency and throughput. The Cache-Aside pattern — the most commonly expected answer in interviews — is covered in depth (with Redis specifics) in the **Database Interview Prep** file.
+
+### What is the Circuit Breaker pattern, and why is it needed?
+
+When Service A calls Service B, and B is failing or extremely slow, A retrying repeatedly (or waiting on a long timeout for every request) wastes resources and can cascade the failure back to A's own callers. A circuit breaker wraps calls to B and tracks failure rate:
+
+```
+Closed (normal)   -> requests pass through normally
+       │ (failure rate exceeds threshold)
+       ▼
+Open              -> requests fail immediately WITHOUT calling B, for a cooldown period
+       │ (cooldown expires)
+       ▼
+Half-Open         -> allow a small number of test requests through
+       │
+       ├── succeed -> back to Closed
+       └── fail    -> back to Open
+```
+
+This prevents a struggling downstream service from being hammered with requests it can't handle, and lets A fail fast (return a fallback/cached response, or a clear error) instead of hanging on every request waiting for B to time out.
+
+## Message Queues
+
+### Kafka vs RabbitMQ — when would you choose which?
+
+**Kafka** — a distributed log/streaming platform. Messages are retained for a configurable period (not deleted immediately after consumption), and multiple independent consumers can each read the full stream at their own pace. Built for very high throughput and event-sourcing/replay use cases.
+
+**RabbitMQ** — a traditional message broker/queue. Messages are typically removed once acknowledged by a consumer. Better suited for classic task-queue patterns (a job should be processed exactly once by exactly one worker) and offers more flexible routing (exchanges, topic-based routing) out of the box.
+
+```
+Choose Kafka when:
+  - You need multiple independent services to consume the SAME event stream
+  - You need replay/audit capability (event sourcing)
+  - Very high throughput (millions of events/sec)
+
+Choose RabbitMQ when:
+  - Classic task queue (one job, one worker)
+  - Complex routing logic between producers and consumers
+  - Lower operational complexity is a priority
+```
+
+### What is a Dead Letter Queue (DLQ)?
+
+A DLQ is a separate queue where messages are routed after they fail processing repeatedly (exceeding a retry limit), instead of being retried forever or silently dropped. This lets you investigate and reprocess failed messages without blocking the main queue.
+
+## Common System Design Walkthroughs
+
+### Design a URL Shortener
+
+**Requirements clarification:** custom aliases needed? Expiration? Analytics (click tracking)? Expected scale (reads vs writes ratio — typically read-heavy, since one shortened URL gets clicked many times)?
+
+**High-level design:**
+```
+Client -> API Gateway -> Shortener Service -> Database
+                              │
+                         Cache (Redis) for hot URLs
+```
+
+**Core logic:** generate a short, unique key for each long URL — either a counter-based approach (base62-encode an auto-incrementing ID) or a hash-based approach (hash the URL, take the first N characters, handle collisions). Store the mapping `shortKey -> longURL`.
+
+**Read path (the hot path, since reads >> writes):** `GET /:shortKey` — look up in cache first, fall back to DB on cache miss, redirect with `301`/`302`.
+
+**Scale considerations:** since it's read-heavy, aggressive caching (Redis) for popular URLs matters more than write optimization. Database can be sharded by short-key prefix if it grows large enough to need it.
+
+### Design a Rate Limiter (as a distributed system, not just the algorithm)
+
+**Requirements:** per-user or per-IP limits? What should happen when the limit is exceeded (reject vs queue)? Does it need to work correctly across multiple application server instances?
+
+**Design:** since multiple app instances can't rely on local in-memory counters (each instance would track separately, effectively multiplying the real limit), rate limit state needs to live in a shared, fast store — **Redis**, using atomic increment operations (`INCR` with a TTL) so concurrent requests from different instances don't race.
+
+```
+Request arrives -> App instance checks Redis: INCR user:123:count, set TTL if new key
+                 -> if count > limit: reject with 429
+                 -> else: proceed
+```
+
+**Where to enforce it:** at the API Gateway level for coarse global protection, plus application-level checks for business-specific limits (tied to a user's subscription tier, for example).
+
+### Design a Notification Service
+
+**Requirements:** channels needed (email, SMS, push)? Delivery guarantees (at-least-once vs best-effort)? Retry behavior on failure?
+
+**High-level design:**
+```
+Event Source (e.g., "OrderPlaced") -> Message Queue (Kafka/RabbitMQ) -> Notification Service
+                                                                              │
+                                                              ┌───────────────┼───────────────┐
+                                                            Email          SMS            Push
+                                                            Provider     Provider       Provider
+```
+
+The producing service (e.g., Transaction Service) publishes an event and moves on — it doesn't wait for the notification to actually send. The Notification Service consumes events asynchronously, decides which channel(s) to use, and calls the relevant third-party provider (SendGrid, Twilio, FCM).
+
+**Reliability:** failed sends go through retry with exponential backoff; persistent failures route to a Dead Letter Queue for investigation rather than being silently dropped. This is the same reliability pattern already covered in the AWS Lambda notes (retries, DLQs, idempotency) — the pattern is provider-agnostic.
